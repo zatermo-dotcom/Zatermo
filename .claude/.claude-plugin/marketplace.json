@@ -1,0 +1,18 @@
+{
+  "name": "skills-for-architects",
+  "owner": {
+    "name": "ALPA",
+    "email": "hello@alpa.llc"
+  },
+  "metadata": {
+    "description": "Architecture Studio — governed AEC skills and portable studio workflows for Codex and Claude Code, with Claude-native agents and hooks.",
+    "version": "1.4.3"
+  },
+  "plugins": [
+    {
+      "name": "as",
+      "source": "./",
+      "description": "Architecture Studio — governed AEC skills and portable studio workflows for Codex and Claude Code."
+    }
+  ]
+}
