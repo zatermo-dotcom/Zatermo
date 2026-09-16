@@ -12,13 +12,15 @@ The Claude Code assets listed below were installed from the RTK project:
 **Agents** (`.claude/agents/`): `code-reviewer`, `debugger`,
 `rtk-testing-specialist`, `rust-rtk`, `system-architect`, `technical-writer`.
 
-**Rules** (`.claude/rules/`): `cli-testing`, `rust-patterns`, `search-strategy`.
-
 **Commands** (`.claude/commands/`): worktree management, `codereview`,
 `audit-codebase`, `diagnose`, `test-routing`, and RTK workflow commands.
 
 **Hooks** (`.claude/hooks/`): `rtk-suggest.sh`, `rtk-rewrite.sh`,
 `bash/pre-commit-format.sh`. These are inert — no `settings.json` entry
 registers them, so nothing runs until they are wired up explicitly.
+
+Upstream also ships rules under `.claude/rules/`. Those were
+deliberately not installed: they are written for RTK's Rust codebase and
+would load as project instructions here, where they do not apply.
 
 Files are unmodified copies of the upstream originals.
