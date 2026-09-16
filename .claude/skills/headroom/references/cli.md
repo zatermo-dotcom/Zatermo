@@ -51,13 +51,18 @@ in the background; `HEADROOM_UPDATE_CHECK=off` opts out.
 
 ## wrap
 
+Verified against CLI 0.37.0 — `headroom wrap --help` is the source of truth if
+the list drifts.
+
 ```bash
 headroom wrap claude
-headroom wrap codex | copilot | cursor | aider | opencode | cline | continue \
-                    | goose | openhands | openclaw | vibe | omp | zcode | grok | kimi
-headroom wrap vscode           # GitHub Copilot in VS Code
-headroom wrap vscode-claude    # Claude Code extension in VS Code
-headroom unwrap claude         # also: copilot, codex, grok, kimi, omp, opencode, openclaw, zcode
+# aider · cline · claude · codex · continue · copilot · cursor · goose · grok
+# grok-build · kimi · omp · openclaude · openclaw · opencode · openhands · vibe
+# vscode (Copilot in VS Code) · vscode-claude (Claude Code extension) · zcode
+
+headroom unwrap claude
+# claude · codex · copilot · grok · grok-build · omp · openclaw · opencode
+# vscode · vscode-claude · zcode      (no unwrap for the launch-only wrappers)
 ```
 
 Wrapping starts a local proxy, installs [Serena](https://github.com/oraios/serena)
@@ -74,7 +79,8 @@ Launch a wrapped session every time — that is what runs the setup.
 |---|---|
 | `--port N` | Proxy port (default 8787) |
 | `--memory` | Persistent cross-session memory |
-| `--code-memory serena\|none` | Code-memory MCP choice |
+| `--code-memory serena\|none` | Code-memory MCP to register; `serena` is the default. Also set by `HEADROOM_CODE_MEMORY`. Replaces the deprecated `--serena` / `--no-serena` |
+| `--serena-instructions` | Inject "prefer Serena symbol tools" guidance into the agent's hint file (opt-in, off by default) |
 | `--code-graph` | Proxy's live code-graph file watcher for this project |
 | `--learn` | Live traffic learning (patterns saved to `MEMORY.md`) |
 | `--tool-search MODE` | Keep Claude Code's on-demand tool loading through the proxy. `true` (default), `auto`, `auto:N`, `false`. Without it a custom `ANTHROPIC_BASE_URL` makes Claude Code load every tool schema eagerly, inflating local context |
@@ -84,7 +90,9 @@ Launch a wrapped session every time — that is what runs the setup.
 | `--backend` / `--region` | API backend (`anthropic` default, `litellm-vertex_ai`, …) and cloud region. For Vertex prefer `CLAUDE_CODE_USE_VERTEX=1` over a litellm backend |
 | `-v` | Verbose |
 
-Trailing args after the flags pass through to the agent:
+Unknown flags pass straight through to the agent — `headroom wrap claude
+--resume <id>`, `headroom wrap claude --model …`. Use `--` for flags that would
+otherwise be eaten: `headroom wrap claude -- -p` (print mode),
 `headroom wrap copilot --subscription -- --model gpt-4o`.
 
 ### Runtime env hot-sync

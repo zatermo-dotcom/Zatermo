@@ -16,8 +16,15 @@ else
 fi
 
 echo
-echo "== Python =="
-printf '  %s\n' "$(python3 -c 'import sys; print(sys.version.split()[0])' 2>/dev/null || echo unknown)"
+echo "== Python behind the CLI =="
+# The interpreter that runs headroom, not whatever python3 the shell resolves —
+# a uv/pipx install usually pins a different one.
+hr_py="$(head -1 "$(command -v headroom)" 2>/dev/null | sed -n 's|^#!\([^ ]*\).*|\1|p')"
+if [ -x "$hr_py" ]; then
+  printf '  %s (%s)\n' "$("$hr_py" -c 'import sys; print(sys.version.split()[0])' 2>/dev/null || echo unknown)" "$hr_py"
+else
+  echo "  could not determine (headroom is not a script with a shebang)"
+fi
 echo "  (3.14+ keeps token savings but leaves the dashboard dollar tile at \$0.00)"
 
 echo
