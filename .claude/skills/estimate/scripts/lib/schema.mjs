@@ -1,0 +1,128 @@
+// Shape checks for estimation-inputs.json — the agent writes that file, so the
+// checks here are the contract that keeps interview output honest before any
+// arithmetic happens. Findings are strings with the offending id in them.
+import { AI_CATEGORIES, SENIORITY_FACTOR, PLAN_PRICES } from './estimate-math.mjs';
+
+const PROVENANCE = ['observed', 'stated', 'researched', 'proposed'];
+const CONFIDENCE = ['HIGH', 'MED', 'LOW'];
+const pct = (v) => typeof v === 'number' && v >= 0 && v < 1;
+
+function checkTask(task, out) {
+  if (!['o', 'm', 'p'].every((k) => typeof task[k] === 'number')) out.push(`task ${task.id}: o, m, p must be numbers`);
+  if (!(task.o > 0 && task.m > 0 && task.p > 0)) out.push(`task ${task.id}: estimates are never 0`);
+  if (!(task.o <= task.m && task.m <= task.p)) out.push(`task ${task.id}: expected o <= m <= p`);
+  // Object.hasOwn, never `in`: "toString" is `in` every object, and an inherited
+  // key here becomes a NaN three tasks later in compute.
+  if (!Object.hasOwn(AI_CATEGORIES, task.category)) out.push(`task ${task.id}: unknown category "${task.category}"`);
+  if (!CONFIDENCE.includes(task.confidence)) out.push(`task ${task.id}: confidence must be HIGH|MED|LOW`);
+  if (!Array.isArray(task.assumptions)) out.push(`task ${task.id}: assumptions array is required`);
+  if (!PROVENANCE.includes(task.provenance)) out.push(`task ${task.id}: provenance not in vocabulary`);
+}
+
+function checkFeature(feature, out) {
+  // Scope items are the clear-vs-assumed split itself: only stated|proposed.
+  // (Task rows keep the full four-word vocabulary for their src column.)
+  if (!['stated', 'proposed'].includes(feature.provenance)) {
+    out.push(`feature ${feature.id}: scope provenance must be stated|proposed`);
+  }
+  if (!(feature.tasks?.length > 0)) out.push(`feature ${feature.id}: must have at least one task`);
+  for (const task of feature.tasks ?? []) checkTask(task, out);
+}
+
+// Roadmap is all-or-nothing: a half-labeled feature list would render a
+// half-roadmap that silently drops scope, so partial labeling is refused.
+function checkMilestones(features, out) {
+  const withMs = features.filter((f) => f.milestone !== undefined);
+  if (withMs.length === 0) return;
+  for (const f of features) {
+    if (f.milestone === undefined) {
+      out.push(`feature ${f.id}: milestone missing (all features must carry one when any does)`);
+    } else if (!(typeof f.milestone === 'string' && f.milestone.trim())) {
+      out.push(`feature ${f.id}: milestone must be a non-empty string`);
+    }
+  }
+}
+
+// Components are all-or-nothing like milestones, and coverage is the point:
+// a §6 component nobody planned work for is a scope hole, refused here unless
+// the roster excuses it with an explicit notEstimated reason. Two levels max —
+// C4 container → component — so rollups never walk a chain.
+function checkRoster(components, out) {
+  const byId = new Map(components.map((c) => [c.id, c]));
+  if (byId.size !== components.length) out.push('component roster: duplicate ids');
+  for (const c of components) {
+    if (!(typeof c.id === 'string' && c.id.trim())) out.push('component roster: every entry needs a non-empty id');
+    if (!(typeof c.name === 'string' && c.name.trim())) out.push(`component ${c.id}: name must be a non-empty string`);
+    if (c.notEstimated !== undefined && !(typeof c.notEstimated === 'string' && c.notEstimated.trim())) {
+      out.push(`component ${c.id}: notEstimated must carry a reason`);
+    }
+    if (c.parent === undefined) continue;
+    const parent = byId.get(c.parent);
+    if (!parent) out.push(`component ${c.id}: parent "${c.parent}" not in roster`);
+    else if (parent.parent !== undefined) out.push(`component ${c.id}: parent "${c.parent}" is not top-level (two levels max)`);
+  }
+}
+
+function checkComponentCoverage(components, features, out) {
+  const covered = new Set(features.map((f) => f.component));
+  const parents = new Set(components.map((c) => c.parent).filter(Boolean));
+  for (const c of components) {
+    if (!parents.has(c.id) && !covered.has(c.id) && c.notEstimated === undefined) {
+      out.push(`component ${c.id}: no feature covers it — tag a feature or set notEstimated with a reason`);
+    }
+  }
+}
+
+function checkComponents(inputs, out) {
+  const features = inputs.features ?? [];
+  if (inputs.components === undefined) {
+    for (const f of features) {
+      if (f.component !== undefined) out.push(`feature ${f.id}: component set but no top-level components roster`);
+    }
+    return;
+  }
+  checkRoster(inputs.components, out);
+  const ids = new Set(inputs.components.map((c) => c.id));
+  for (const f of features) {
+    if (f.component === undefined) out.push(`feature ${f.id}: component missing (all features must carry one when a roster exists)`);
+    else if (!ids.has(f.component)) out.push(`feature ${f.id}: component "${f.component}" not in roster`);
+  }
+  checkComponentCoverage(inputs.components, features, out);
+}
+
+function checkScenarios(inputs, out) {
+  const ids = (inputs.scenarios ?? []).map((s) => s.id);
+  if (!ids.includes(inputs.recommendedScenario)) out.push('recommendedScenario names no scenario');
+  for (const s of inputs.scenarios ?? []) {
+    if (!s.team?.length) out.push(`scenario ${s.id}: empty team`);
+    if (!Object.hasOwn(PLAN_PRICES, s.plan)) out.push(`scenario ${s.id}: unknown plan "${s.plan}"`);
+    for (const member of s.team ?? []) {
+      if (!Object.hasOwn(SENIORITY_FACTOR, member.seniority)) out.push(`scenario ${s.id}: unknown seniority "${member.seniority}"`);
+      if (!(typeof member.rate === 'number' && member.rate > 0)) out.push(`scenario ${s.id}: rate must be a positive number`);
+    }
+  }
+}
+
+// Anything compute.mjs would turn into NaN gets refused here instead: the
+// "computed truth" contract holds only if every operand is a sane number.
+function checkGlobals(inputs, out) {
+  if (!pct(inputs.overheadPct)) out.push('overheadPct must be a number in [0, 1)');
+  if (!pct(inputs.verificationPct)) out.push('verificationPct must be a number in [0, 1)');
+  for (const r of inputs.risks ?? []) {
+    if (!(typeof r.probability === 'number' && r.probability >= 0 && r.probability <= 1)) out.push(`risk "${r.name}": probability must be in [0, 1]`);
+    if (!(typeof r.impactHours === 'number' && r.impactHours > 0)) out.push(`risk "${r.name}": impactHours must be positive`);
+  }
+}
+
+export function checkInputs(inputs) {
+  const out = [];
+  for (const key of ['project', 'technique', 'features', 'risks', 'assumptions', 'scenarios']) {
+    if (!(key in inputs)) out.push(`missing top-level "${key}"`);
+  }
+  for (const feature of inputs.features ?? []) checkFeature(feature, out);
+  checkMilestones(inputs.features ?? [], out);
+  checkComponents(inputs, out);
+  checkScenarios(inputs, out);
+  checkGlobals(inputs, out);
+  return out;
+}
