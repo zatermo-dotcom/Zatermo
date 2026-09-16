@@ -30,5 +30,8 @@ Equivalent interactive install:
 /plugin install headroom@headroom-marketplace
 ```
 
-Note: the repository ships no Claude Code skills (no `SKILL.md` files) — the
-plugin hooks above are the whole of its Claude Code surface.
+Note: the upstream repository ships no Claude Code skills (no `SKILL.md`
+files) — the plugin hooks above are the whole of its Claude Code surface. The
+`headroom` skill in `.claude/skills/headroom/` was written here from the
+upstream docs and source; it is not vendored from that repo and does not track
+it automatically.
