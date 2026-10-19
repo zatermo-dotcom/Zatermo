@@ -1,0 +1,101 @@
+# ilk.medater Cloud — déploiement local (Windows 11 + Docker Desktop/WSL 2, ou Linux).
+# Seul le port web est publié, et uniquement sur 127.0.0.1. PostgreSQL et l'API ne sont jamais exposés.
+name: ilk-medater
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgresql+psycopg://ilk_app:${APP_DB_PASSWORD:?APP_DB_PASSWORD manquant}@db:5432/ilk
+  MIGRATION_DATABASE_URL: postgresql://ilk_owner:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant}@db:5432/ilk
+  SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET manquant}
+  MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?MFA_ENCRYPTION_KEY manquant}
+  COOKIE_SECURE: ${COOKIE_SECURE:-false}
+  DOCUMENTS_DIR: /data/documents
+  MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-200}
+  OLLAMA_URL: ${OLLAMA_URL:-}
+  OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b-instruct}
+  CLOUD_AI_PROVIDER: ${CLOUD_AI_PROVIDER:-}
+  CLOUD_AI_API_KEY: ${CLOUD_AI_API_KEY:-}
+  CLOUD_AI_MODEL: ${CLOUD_AI_MODEL:-claude-opus-5-5}
+
+services:
+  db:
+    image: postgres:16.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ilk_owner
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ilk
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ilk_owner -d ilk"]
+      interval: 5s
+      retries: 20
+    networks: [internal]
+
+  migrate:
+    build: ./backend
+    command: ["python", "-m", "app.migrate"]
+    environment: *backend-env
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+    networks: [internal]
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    environment: *backend-env
+    volumes:
+      - documents:/data/documents
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    networks: [internal]
+
+  web:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./docker/nginx:/etc/nginx/conf.d:ro
+    depends_on: [api]
+    networks: [internal]
+
+  backup:
+    image: postgres:16.6-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGUSER: ilk_owner
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ilk
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-24}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    volumes:
+      - ./backups:/backups
+      - documents:/data/documents:ro
+      - ./scripts:/scripts:ro
+    entrypoint: ["/bin/sh", "/scripts/backup-loop.sh"]
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [internal]
+
+  # IA locale facultative : docker compose --profile ia-locale up -d
+  ollama:
+    image: ollama/ollama:0.5.7
+    profiles: ["ia-locale"]
+    restart: unless-stopped
+    volumes:
+      - ollama:/root/.ollama
+    networks: [internal]
+
+volumes:
+  pgdata:
+  documents:
+  ollama:
+
+networks:
+  internal:

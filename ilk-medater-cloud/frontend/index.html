@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ilk.medater Cloud</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231d3f6e'/%3E%3Cpath d='M9 24V8h4v16zm6 0V12h4v12zm6 0V15h4v9z' fill='%23e6b85c'/%3E%3C/svg%3E">
+</head>
+<body>
+  <div id="login" class="login" hidden>
+    <form class="login-card" id="login-form" autocomplete="on">
+      <div class="brand-lg"><span class="mark">ilk</span>.medater <b>Cloud</b></div>
+      <p class="muted">ilk.medater groupe — eurl medater · cabinet ILK</p>
+      <div id="login-step"></div>
+      <p class="error" id="login-error" role="alert"></p>
+    </form>
+  </div>
+
+  <div id="app" class="shell" hidden>
+    <aside class="side">
+      <div class="brand"><span class="mark">ilk</span>.medater <b>Cloud</b></div>
+      <nav id="nav" aria-label="Navigation principale"></nav>
+      <div class="side-foot" id="side-foot"></div>
+    </aside>
+    <main>
+      <header class="top">
+        <div>
+          <div class="eyebrow" id="crumb">ilk.medater groupe</div>
+          <h1 id="title">Siège virtuel</h1>
+        </div>
+        <div class="top-right">
+          <span class="who" id="who"></span>
+          <button class="btn ghost" id="logout" type="button">Déconnexion</button>
+        </div>
+      </header>
+      <section id="view" aria-live="polite"></section>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status"></div>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
