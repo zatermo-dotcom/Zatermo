@@ -3,7 +3,7 @@
 Légende : **Testé** = vérifié par un test automatisé ou une exécution réelle décrite ci-dessous · **Implémenté, non testé en conditions réelles** · **Absent**.
 
 ## Vérifications réellement effectuées
-- `pytest` : **49 tests réussis** (deux exécutions consécutives), contre un vrai PostgreSQL 16, l'API se connectant avec le rôle restreint `ilk_app`.
+- `pytest` : **55 tests réussis** (deux exécutions consécutives), contre un vrai PostgreSQL 16, l'API se connectant avec le rôle restreint `ilk_app`.
 - Parcours navigateur (Chromium piloté par Playwright) sur le serveur de développement : connexion DG + MFA, 15 écrans sans erreur JavaScript, siège 3D (29 bureaux, ascenseur), assistant IA en mode règles ; parcours d'un collaborateur limité (mot de passe imposé, un seul chantier visible, finances et console refusées).
 - Sauvegarde `pg_dump` + documents, puis test de restauration non destructif : empreintes OK, 35 tables, journal d'audit intègre.
 - `docker compose config` : configuration valide (services db, migrate, api, web, backup, ollama).
@@ -26,7 +26,8 @@ Légende : **Testé** = vérifié par un test automatisé ou une exécution rée
 | CLI : création et récupération du DG, vérification de l'audit | Implémenté, non testé (saisie masquée interactive) |
 | Projets, jalons, chantiers, journal, risques | Testé (API) + parcours navigateur |
 | Marchés, ODS/avenants, délais et pénalités théoriques, situations et décomptes | Testé |
-| Factures, paiements, créances et retards, consolidation | Testé |
+| Factures, paiements, créances et retards | Testé |
+| Gestion financière séparée par filiale (aucune consolidation, un seul périmètre financier par collaborateur, trigger en base, IA par filiale) | Testé + vérifié en navigateur |
 | Bons de commande, stock, matériel, RH, congés, QHSE, tiers | Testé pour stock, commandes et isolation ; autres écrans vérifiés en navigateur |
 | Livrables APS/APD/DCE/EXE avec validation à quatre yeux | Testé |
 | 10 moteurs de pré-dimensionnement | Testé (valeurs recalculées à la main) |

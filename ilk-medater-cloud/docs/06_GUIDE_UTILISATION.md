@@ -19,13 +19,13 @@ Démarche conseillée pour le pilote : rester seul utilisateur, saisir les proje
 ## Modules
 | Module | Contenu |
 |---|---|
-| Tableau de bord | Indicateurs par filiale (projets en retard, avancement, créances échues, marchés en retard, pénalités théoriques, livrables à valider, stock, RH, QHSE) ; consolidation financière si accès finances aux deux filiales |
+| Tableau de bord | Indicateurs par filiale (projets en retard, avancement, créances échues, marchés en retard, pénalités théoriques, livrables à valider, stock, RH, QHSE), présentés filiale par filiale sans total commun |
 | Projets | Projets (phase ESQ → CLOS, statut, budget, alerte de retard), jalons |
 | Chantiers | Chantiers (avancement physique), journal de chantier quotidien, registre des risques |
 | Études, MEP et calculs | Livrables par phase et spécialité avec circuit soumis → validé/rejeté ; 10 moteurs de pré-dimensionnement ; registre de synthèse et conflits MEP |
 | Documents et BIM | Dépôt contrôlé (PDF, DWG, DXF, IFC, Office, images), versions et indices, empreinte SHA-256, métadonnées IFC |
 | Marchés et contrats | Marchés (TVA, retenue de garantie, pénalités, plafond), ODS, avenants, réclamations, réceptions ; fin contractuelle recalculée, retard et pénalités théoriques ; situations avec décompte (période, retenue, TVA, net à payer, avancement financier) |
-| Finances | Factures clients et fournisseurs (TTC, solde, retard), encaissements et paiements (dépassement du solde refusé) |
+| Finances | Choix de la filiale (eurl medater ou cabinet ILK), comptes séparés ; factures clients et fournisseurs (TTC, solde, retard), encaissements et paiements (dépassement du solde refusé) |
 | Achats et stocks | Bons de commande, articles, mouvements (stock négatif refusé, alerte sous le seuil) |
 | Parc matériel | Engins et matériel, affectation à un chantier, maintenance |
 | Ressources humaines | Personnel par département, congés (décision avec l'action « valider ») |

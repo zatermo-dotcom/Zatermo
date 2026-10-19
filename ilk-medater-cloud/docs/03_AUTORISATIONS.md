@@ -24,6 +24,14 @@
 - **Valider** : situations de travaux, factures annulées, bons de commande, congés, livrables d'études (principe des quatre yeux : l'auteur ne valide pas son propre livrable), références juridiques.
 - **Exporter** : téléchargement des documents confidentiels ou secrets (les documents internes se téléchargent avec la consultation).
 
+## Gestion financière séparée par filiale
+Décision de la Direction : les finances d'**eurl medater** et du **cabinet ILK** sont gérées séparément.
+- Chaque filiale a son propre service financier : « Finances et contrats » (eurl medater, R+1) et « Comptabilité et finances du cabinet » (cabinet ILK, R+2). Il n'existe plus de service financier commun.
+- Hors Directeur général, un collaborateur ne peut avoir d'accès financier que dans **une seule** filiale ; la console refuse toute autorisation (filiale, département, module) qui lui ouvrirait les finances des deux, y compris lors d'une réactivation.
+- Aucune consolidation : le tableau de bord présente chaque filiale à part, sans total commun.
+- Les écrans Finances et Marchés travaillent toujours sur une filiale choisie ; une facture ou un paiement ne peut référencer qu'un tiers, un projet ou un marché de sa filiale (contrôle API et trigger en base).
+- L'assistant IA ne lit les finances que pour une filiale précisée dans la question.
+
 ## Cycle de vie
 - **Expiration** : date facultative ; au-delà, l'autorisation ne donne plus rien.
 - **Suspension** : réversible.

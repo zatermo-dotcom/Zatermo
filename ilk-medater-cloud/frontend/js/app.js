@@ -2,7 +2,7 @@
 import { api, ApiError, clear, el, field, guard, toast } from './core.js';
 import { directorConsole } from './console.js';
 import { invalidateRefs, tabs } from './modules.js';
-import { assistant, dashboard, documents, legal, studies } from './views.js';
+import { assistant, dashboard, documents, legal, perCompany, studies } from './views.js';
 
 const $ = id => document.getElementById(id);
 let me = null;
@@ -90,9 +90,9 @@ const ROUTES = [
   { id: 'sites', label: 'Chantiers', group: 'Métiers', ok: () => can('sites'), render: h => tabs(h, [{ key: 'sites' }, { key: 'daily-reports' }, { key: 'site-risks' }], me) },
   { id: 'studies', label: 'Études, MEP et calculs', group: 'Métiers', ok: () => can('studies'), render: h => studies(h, me) },
   { id: 'documents', label: 'Documents et BIM', group: 'Métiers', ok: () => can('documents'), render: h => documents(h, me) },
-  { id: 'contracts', label: 'Marchés et contrats', group: 'Métiers', ok: () => can('contracts'), render: h => tabs(h, [{ key: 'contracts' }, { key: 'contract-events' }, { key: 'situations' }], me) },
+  { id: 'contracts', label: 'Marchés et contrats', group: 'Métiers', ok: () => can('contracts'), render: h => perCompany(h, me, 'contracts', [{ key: 'contracts' }, { key: 'contract-events' }, { key: 'situations' }], 'Marchés de la filiale') },
   { id: 'qhse', label: 'Qualité et HSE', group: 'Métiers', ok: () => can('qhse'), render: h => tabs(h, [{ key: 'qhse-events' }], me) },
-  { id: 'finance', label: 'Finances', group: 'Gestion', ok: () => can('finance'), render: h => tabs(h, [{ key: 'invoices' }, { key: 'payments' }], me) },
+  { id: 'finance', label: 'Finances', group: 'Gestion', ok: () => can('finance'), render: h => perCompany(h, me, 'finance', [{ key: 'invoices' }, { key: 'payments' }], 'Comptabilité de la filiale') },
   { id: 'procurement', label: 'Achats et stocks', group: 'Gestion', ok: () => can('procurement'), render: h => tabs(h, [{ key: 'purchase-orders' }, { key: 'stock-items' }, { key: 'stock-movements' }], me) },
   { id: 'equipment', label: 'Parc matériel', group: 'Gestion', ok: () => can('equipment'), render: h => tabs(h, [{ key: 'equipment' }], me) },
   { id: 'hr', label: 'Ressources humaines', group: 'Gestion', ok: () => can('hr'), render: h => tabs(h, [{ key: 'employees' }, { key: 'leave-requests' }], me) },

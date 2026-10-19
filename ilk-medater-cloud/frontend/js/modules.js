@@ -3,6 +3,9 @@
 import { api, clear, day, el, field, guard, money, num, pill, table } from './core.js';
 
 const refCache = new Map();
+// Filiale imposée par la vue (finances et marchés : une filiale à la fois, comptes séparés).
+let scopeCompany = null;
+const COMPANY_SCOPED = new Set(['project', 'party', 'supplier', 'site', 'contract', 'invoice', 'item', 'employee'])
 async function refList(path) {
   if (!refCache.has(path)) refCache.set(path, api(path).catch(() => []));
   return refCache.get(path);
@@ -24,7 +27,8 @@ const REFS = {
 
 async function refOptions(kind) {
   const r = REFS[kind];
-  let data = await refList(r.path);
+  let data = await refList(scopeCompany && COMPANY_SCOPED.has(kind) ? `${r.path}?company_id=${scopeCompany}` : r.path);
+  if (kind === 'company' && scopeCompany) data = { ...data, companies: data.companies.filter(c => c.id === scopeCompany) };
   if (r.pick) data = r.pick(data);
   if (r.filter) data = data.filter(r.filter);
   return data.map(x => ({ value: r.value ? r.value(x) : x.id, label: r.label(x) }));
@@ -228,13 +232,15 @@ async function cell(c, r, res, reload, canEdit) {
   return v;
 }
 
-export async function renderResource(host, key, me) {
+export async function renderResource(host, key, me, { companyId = null } = {}) {
   const res = RES[key];
+  scopeCompany = companyId;
+  const listPath = companyId ? `${res.path}?company_id=${companyId}` : res.path;
   const caps = me.modules[res.module] || {};
   const canEdit = caps.edit;
   const list = el('div');
   const reload = async () => {
-    const rows = await api(res.path).catch(e => { clear(list, el('div', { class: 'notice' }, e.message)); return null; });
+    const rows = await api(listPath).catch(e => { clear(list, el('div', { class: 'notice' }, e.message)); return null; });
     if (!rows) return;
     const resolved = await Promise.all(rows.map(async r => {
       const o = { ...r };
@@ -263,13 +269,13 @@ export async function renderResource(host, key, me) {
 }
 
 // Onglets d'un module
-export function tabs(host, items, me) {
+export function tabs(host, items, me, opts = {}) {
   const bar = el('div', { class: 'row', role: 'tablist', style: 'margin-bottom:12px' });
   const body = el('div');
   const show = async key => {
     bar.querySelectorAll('button').forEach(b => b.classList.toggle('ghost', b.dataset.k !== key));
     const item = items.find(i => i.key === key);
-    if (item.render) await item.render(body, me); else await renderResource(body, key, me);
+    if (item.render) await item.render(body, me); else await renderResource(body, key, me, opts);
   };
   for (const it of items) bar.append(el('button', { class: 'btn ghost', type: 'button', dataset: { k: it.key }, onclick: () => show(it.key) }, it.label || RES[it.key].title));
   clear(host, bar, body);

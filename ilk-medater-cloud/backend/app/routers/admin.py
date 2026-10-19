@@ -12,7 +12,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from ..audit import audit
-from ..authz import ACTIONS, MODULES, Principal, company_ids, org_units
+from ..authz import ACTIONS, MODULES, Principal, company_ids, load_principal, org_units
 from ..db import get_db
 from ..deps import client_ip, director
 from ..models import AiSettings, AuditEvent, Company, Document, Grant, Project, SessionRow, User
@@ -183,8 +183,8 @@ def _validate_scope(s: Session, g: GrantIn) -> int | None:
         return g.company_id
     if g.scope_type == "org_unit":
         unit = org_units(s).get(g.scope_ref)
-        if not unit:
-            raise HTTPException(422, "Département inconnu")
+        if not unit or not unit.active:
+            raise HTTPException(422, "Département inconnu ou supprimé")
         if not unit.modules:
             raise HTTPException(422, "Ce service n'ouvre aucun module métier")
         if unit.company_code == "GROUP":
@@ -199,6 +199,17 @@ def _validate_scope(s: Session, g: GrantIn) -> int | None:
     return obj.company_id
 
 
+def _check_finance_separation(s: Session, user: User, extra: Grant | None = None) -> None:
+    """Gestion financière séparée : hors Directeur, un compte n'accède aux finances que d'une seule filiale."""
+    p = load_principal(s, user)
+    if extra is not None:
+        p.grants = [g for g in p.grants if g.id != extra.id] + [extra]
+    comps = p.companies_for("finance", "view") or set()
+    if len(comps) > 1:
+        raise HTTPException(422, "Gestion financière séparée : ce collaborateur aurait accès aux finances des deux filiales. "
+                                 "Les finances d'eurl medater et du cabinet ILK doivent rester confiées à des comptes distincts.")
+
+
 @router.post("/grants", status_code=201)
 def create_grant(data: GrantIn, request: Request, p: Principal = Depends(director), s: Session = Depends(get_db)):
     target = s.get(User, data.user_id)
@@ -211,6 +222,7 @@ def create_grant(data: GrantIn, request: Request, p: Principal = Depends(directo
     cid = _validate_scope(s, data)
     g = Grant(user_id=data.user_id, company_id=cid, scope_type=data.scope_type, scope_ref=data.scope_ref,
               actions=list(data.actions), expires_at=data.expires_at, note=data.note, granted_by=p.id, changed_by=p.id)
+    _check_finance_separation(s, target, g)
     s.add(g)
     s.flush()
     audit(s, p.id, "grant.created", f"grant:{g.id}", company_id=cid,
@@ -240,6 +252,8 @@ def patch_grant(grant_id: int, data: GrantPatch, request: Request, p: Principal 
         g.expires_at = data.expires_at
     if data.actions:
         g.actions = sorted(set(data.actions), key=ACTIONS.index)
+    if g.status == "active":
+        _check_finance_separation(s, s.get(User, g.user_id), g)
     g.changed_by = p.id
     audit(s, p.id, f"grant.{data.status or 'updated'}", f"grant:{g.id}", company_id=g.company_id,
           details={"before": before, "changes": data.model_dump(exclude_none=True)}, ip=client_ip(request))

@@ -72,6 +72,7 @@ ASSISTANTS = {a.code: a for a in [
     Assistant("chantier", "Conduite de chantier", "CONST-SITE", ["sites", "projects", "qhse"],
               "avancement, rapports journaliers, risques, ressources et retards"),
     Assistant("prix", "Études de prix", "CONST-EST", ["contracts", "projects"], "appels d'offres, BPU, DQE, estimations, situations"),
-    Assistant("finance", "Finances et créances", "SHARED-FIN", ["finance", "contracts"], "factures, paiements, créances, trésorerie"),
+    Assistant("finance", "Finances et créances (par filiale)", "CONST-FIN", ["finance", "contracts"],
+              "factures, paiements, créances et trésorerie d'une seule filiale à la fois (comptes séparés)"),
     Assistant("rh", "Ressources humaines", "SHARED-HR", ["hr"], "effectifs, contrats, congés"),
 ]}

@@ -44,7 +44,7 @@ def test_company_grant_is_isolated(dg, setup):
                                       "direction": "vente", "number": "F-X", "issue_date": "2026-10-01", "amount_ht": "100"})
     assert r.status_code == 422 and "autre filiale" in r.json()["detail"]
     dash = u.get("/api/dashboard").json()
-    assert [c["code"] for c in dash["companies"]] == ["CONST"] and dash["consolidated_finance"] is None
+    assert [c["code"] for c in dash["companies"]] == ["CONST"] and "consolidated_finance" not in dash
 
 
 def test_view_only_cannot_edit(dg, setup):
@@ -64,7 +64,7 @@ def test_project_grant_covers_project_data_only(dg, setup):
     assert u.post("/api/daily-reports", json={"site_id": site["id"], "report_date": "2026-10-19", "work_done": "Coulage dalle R+1"}).status_code == 201
     assert u.post("/api/sites", json={"project_id": other["id"], "name": "Hors périmètre"}).status_code == 403
     offices = {o["code"]: o["accessible"] for o in u.get("/api/building").json()["offices"]}
-    assert offices["CONST-SITE"] is True and offices["ARCH-ARC"] is False and offices["SHARED-FIN"] is False
+    assert offices["CONST-SITE"] is True and offices["ARCH-ARC"] is False and offices["ARCH-FIN"] is False
     assert u.post("/api/invoices", json={"company_id": setup["CONST"]["company"], "party_id": setup["CONST"]["party"],
                                          "direction": "vente", "number": "F-P", "issue_date": "2026-10-01", "amount_ht": "1"}).status_code == 403
 

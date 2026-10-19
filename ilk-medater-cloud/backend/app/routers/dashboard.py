@@ -15,7 +15,7 @@ from ..resources import contract_schedule
 router = APIRouter(tags=["dashboard"])
 
 # Bureau du siège -> module ouvert au clic (le reste des modules du département est accessible depuis le bureau).
-PRIMARY_MODULE = {"SHARED-EXEC": "dashboard", "SHARED-FIN": "finance", "SHARED-HR": "hr", "SHARED-LEGAL": "legal",
+PRIMARY_MODULE = {"SHARED-EXEC": "dashboard", "ARCH-FIN": "finance", "SHARED-HR": "hr", "SHARED-LEGAL": "legal",
                   "SHARED-IT": "admin", "SHARED-AI": "assistant", "CONST-DIR": "dashboard", "ARCH-DIR": "dashboard",
                   "CONST-TECH": "projects", "CONST-SITE": "sites", "CONST-PROC": "procurement", "CONST-EST": "contracts",
                   "CONST-QHSE": "qhse", "CONST-FIN": "finance", "CONST-HR": "hr", "CONST-PARC": "equipment",
@@ -25,7 +25,7 @@ PRIMARY_MODULE = {"SHARED-EXEC": "dashboard", "SHARED-FIN": "finance", "SHARED-H
 
 @router.get("/org")
 def organisation(p: Principal = Depends(current), s: Session = Depends(get_db)):
-    units = sorted(org_units(s).values(), key=lambda u: u.sort)
+    units = sorted((u for u in org_units(s).values() if u.active), key=lambda u: u.sort)
     comps = s.scalars(select(Company).order_by(Company.id)).all()
     return {"group": "ilk.medater groupe",
             "companies": [{"id": c.id, "code": c.code, "name": c.name} for c in comps],
@@ -39,7 +39,7 @@ def building(p: Principal = Depends(current), s: Session = Depends(get_db)):
     cids = company_ids(s)
     offices = []
     for u in sorted(org_units(s).values(), key=lambda u: u.sort):
-        if u.kind in ("group", "subsidiary"):
+        if u.kind in ("group", "subsidiary") or not u.active:
             continue
         cid = cids.get(u.company_code)
         primary = PRIMARY_MODULE.get(u.code) or (u.modules[0] if u.modules else None)
@@ -131,9 +131,6 @@ def dashboard(p: Principal = Depends(current), s: Session = Depends(get_db)):
         k = _company_kpis(s, p, c.id)
         if k:
             out.append({"company_id": c.id, "code": c.code, "name": c.name, "kpis": k})
-    consolidated = None
-    if len(out) == len(comps) and all("finance" in x["kpis"] for x in out):
-        consolidated = {key: round(sum(x["kpis"]["finance"][key] for x in out), 2)
-                        for key in ("receivables", "receivables_overdue", "payables", "payables_overdue")}
-    return {"companies": out, "consolidated_finance": consolidated,
-            "note": "Indicateurs calculés uniquement sur les modules autorisés ; la consolidation financière exige l'accès finance aux deux filiales."}
+    return {"companies": out,
+            "note": "Indicateurs calculés uniquement sur les modules autorisés. La gestion financière de chaque filiale "
+                    "est séparée : aucun montant n'est additionné entre eurl medater et cabinet ILK."}

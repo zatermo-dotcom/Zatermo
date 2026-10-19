@@ -60,7 +60,7 @@
 | Documents/BIM | `documents`, `document_versions` (SHA-256, métadonnées IFC) |
 | Juridique | `legal_sources` (références saisies et vérifiées) |
 
-Toutes les données métier portent `company_id` : l'isolation entre eurl medater et cabinet ILK est appliquée à chaque requête, et toute référence croisée (ex. facturer un client de l'autre filiale) est refusée.
+La gestion financière est séparée par filiale (migration `004_finances_separees.sql`, voir `03_AUTORISATIONS.md`). Toutes les données métier portent `company_id` : l'isolation entre eurl medater et cabinet ILK est appliquée à chaque requête, et toute référence croisée (ex. facturer un client de l'autre filiale) est refusée.
 
 Évolution du schéma : ajouter un fichier `004_xxx.sql` ; ne jamais modifier une migration déjà appliquée (la somme de contrôle est vérifiée).
 

@@ -1,17 +1,11 @@
 // Vues spécifiques : tableau de bord, études et calculs, documents et BIM, base juridique, assistant IA.
 import { api, clear, day, el, field, guard, money, num, pill, stamp, table } from './core.js';
-import { invalidateRefs, renderResource } from './modules.js';
+import { invalidateRefs, renderResource, tabs } from './modules.js';
 
 // ------------------------------------------------------------------ Tableau de bord
 export async function dashboard(host) {
   const d = await api('/dashboard');
   const blocks = [];
-  if (d.consolidated_finance) {
-    const f = d.consolidated_finance;
-    blocks.push(el('div', { class: 'card' }, el('h2', {}, 'Consolidation groupe (finances)'), el('div', { class: 'grid g4' },
-      kpi('Créances clients', money(f.receivables)), kpi('dont échues', money(f.receivables_overdue)),
-      kpi('Dettes fournisseurs', money(f.payables)), kpi('dont échues', money(f.payables_overdue)))));
-  }
   for (const c of d.companies) {
     const k = c.kpis;
     const tiles = [];
@@ -31,6 +25,28 @@ export async function dashboard(host) {
 }
 function kpi(label, value, tone = '') {
   return el('div', { class: 'kpi' }, el('small', {}, label), el('b', { style: tone ? `color:var(--${tone})` : null }, String(value ?? '—')));
+}
+
+// ------------------------------------------------------------------ Finances séparées par filiale
+// La gestion financière de chaque filiale est séparée : on travaille toujours sur une seule filiale.
+export async function perCompany(host, me, module, items, title) {
+  const org = await api('/org');
+  const caps = me.modules[module] || {};
+  const allowed = org.companies.filter(c => caps.all_companies || caps.companies.includes(c.code));
+  if (!allowed.length) return clear(host, el('div', { class: 'card empty' }, 'Aucune filiale ouverte pour ce module.'));
+  const body = el('div');
+  const bar = el('div', { class: 'row', role: 'tablist' });
+  const pick = async c => {
+    bar.querySelectorAll('button').forEach(b => b.classList.toggle('ghost', b.dataset.id !== String(c.id)));
+    invalidateRefs();
+    await tabs(body, items, me, { companyId: c.id });
+  };
+  allowed.forEach(c => bar.append(el('button', { class: 'btn ghost', type: 'button', dataset: { id: c.id }, onclick: () => pick(c) }, c.name)));
+  clear(host, el('div', { class: 'stack' },
+    el('div', { class: 'card stack' }, el('div', { class: 'row between' }, el('h2', {}, title), bar),
+      el('div', { class: 'notice info' }, 'Comptes séparés : eurl medater et cabinet ILK sont gérés indépendamment. Aucune écriture, aucun tiers ni aucun total n\'est partagé entre les deux filiales.')),
+    body));
+  await pick(allowed[0]);
 }
 
 // ------------------------------------------------------------------ Études, MEP et calculs

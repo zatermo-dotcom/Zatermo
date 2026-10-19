@@ -108,6 +108,11 @@ def collect(s: Session, p: Principal, a: Assistant, question: str, company_id: i
             add("marché", f"contract:{c.id}", f"{c.reference} — {c.title}",
                 f"Marché {c.reference} « {c.title} » ; montant {c.amount_ht} DA HT ; fin contractuelle recalculée {sc['planned_end_date'] or 'non calculable'} ; "
                 f"retard {sc['delay_days']} j ; pénalités théoriques {sc['theoretical_penalty']} DA (indicatif).")
+    finance_comps = p.companies_for("finance", "view")
+    if "finance" in allowed and company_id is None and (finance_comps is None or len(finance_comps) > 1):
+        allowed.remove("finance")
+        missing.append("Finances non consultées : les comptes d'eurl medater et du cabinet ILK sont séparés, "
+                       "préciser la filiale concernée pour toute question financière.")
     if "finance" in allowed:
         rows = []
         for inv in s.scalars(scoped(Invoice, "finance").where(Invoice.status == "emise", Invoice.direction == "vente").limit(200)):
