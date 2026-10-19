@@ -6,7 +6,7 @@ Légende : **Testé** = vérifié par un test automatisé ou une exécution rée
 - `pytest` : **62 tests réussis** (deux exécutions consécutives), contre un vrai PostgreSQL 16, l'API se connectant avec le rôle restreint `ilk_app`.
 - Parcours navigateur (Chromium piloté par Playwright) sur le serveur de développement : connexion DG + MFA, 15 écrans sans erreur JavaScript, siège 3D (29 bureaux, ascenseur), assistant IA en mode règles ; parcours d'un collaborateur limité (mot de passe imposé, un seul chantier visible, finances et console refusées).
 - Sauvegarde `pg_dump` + documents, puis test de restauration non destructif : empreintes OK, 35 tables, journal d'audit intègre.
-- `docker compose config` : configuration valide (services db, migrate, api, web, backup, ollama).
+- **Installation Docker complète exécutée** (Linux, 19/10/2026) selon la procédure : `docker compose up -d --build`, migrations, création du Directeur par la CLI, connexion MFA via nginx, 16 écrans sans erreur, en-têtes CSP actifs, sauvegarde et test de restauration dans les conteneurs, redémarrage avec données conservées et audit intègre. Ce test a révélé et fait corriger un blocage de styles par la CSP.
 
 ## Tableau
 
@@ -23,7 +23,7 @@ Légende : **Testé** = vérifié par un test automatisé ou une exécution rée
 | Sessions serveur révocables, expiration, déconnexion, désactivation de compte | Testé |
 | Verrouillage après 5 échecs, limitation de débit, protection CSRF | Testé (limiteur en mémoire, une seule instance d'API) |
 | Journal d'audit chaîné et non modifiable | Testé |
-| CLI : création et récupération du DG, vérification de l'audit | Implémenté, non testé (saisie masquée interactive) |
+| CLI : création du DG, vérification de l'audit | Exécutées dans Docker ; réinitialisations MFA / mot de passe non encore exécutées |
 | Projets, jalons, chantiers, journal, risques | Testé (API) + parcours navigateur |
 | Marchés, ODS/avenants, délais et pénalités théoriques, situations et décomptes | Testé |
 | Factures, paiements, créances et retards | Testé |
@@ -40,8 +40,8 @@ Légende : **Testé** = vérifié par un test automatisé ou une exécution rée
 | IA cloud : consentement, refus si données confidentielles, masquage | Testé avec un fournisseur simulé ; **aucun appel réel** effectué (pas de clé API) |
 | IA locale Ollama | Code testé avec un modèle simulé ; **aucun modèle réel exécuté** |
 | Siège 3D relié aux droits et aux modules | Testé en navigateur (rendu logiciel) ; performance sur le PC réel à mesurer |
-| Docker Compose sur Windows 11 / WSL 2 | **Non exécuté** (pas de démon Docker dans l'environnement de développement) |
-| nginx (CSP, limitation de débit) | Configuration écrite, **non exécutée** ; le serveur de développement le remplace |
+| Docker Compose | Exécuté et validé sous Linux ; **reste à constater sous Windows 11 / Docker Desktop** (même configuration) |
+| nginx (CSP, en-têtes de sécurité) | Exécuté et vérifié |
 | Accès distant Tailscale | Procédure documentée, non testée |
 | Interface en arabe et en anglais | **Absent** (textes en français ; à prévoir) |
 | Planning Gantt, BPU/DQE détaillés, métrés, sous-traitance détaillée, révision des prix, remboursement d'avance | **Absent** |

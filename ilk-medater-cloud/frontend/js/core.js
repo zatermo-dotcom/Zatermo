@@ -35,6 +35,7 @@ export function el(tag, attrs = {}, ...children) {
     if (v === undefined || v === null || v === false) continue;
     if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
     else if (k === 'class') node.className = v;
+    else if (k === 'style') node.style.cssText = v; // via CSSOM : autorisé par la CSP style-src 'self' (pas d'attribut style)
     else if (k === 'dataset') Object.assign(node.dataset, v);
     else if (v === true) node.setAttribute(k, '');
     else node.setAttribute(k, String(v));
