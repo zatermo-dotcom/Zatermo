@@ -9,7 +9,7 @@ Email, mot de passe, puis code MFA à 6 chiffres. À la première connexion d'un
 - Souris : glisser pour tourner, molette pour zoomer. Le menu de gauche donne accès aux mêmes modules : le siège ne remplace pas les tableaux de bord.
 
 ## Console du Directeur (Direction → Console du Directeur)
-1. **Nouveau compte** : email, nom, fonction, département, mot de passe temporaire. Le compte n'a aucun droit.
+1. **Nouveau compte** : email, nom, fonction, **filiale de rattachement** (obligatoire), département de cette filiale, mot de passe temporaire. Le compte n'a aucun droit, et ne pourra jamais en recevoir sur l'autre filiale.
 2. **Attribuer une autorisation** : choisir le collaborateur, le périmètre (filiale, département, module, projet, document), les actions (consulter, modifier, valider, exporter), une date d'expiration facultative et une note de motif.
 3. Sur chaque compte : suspendre, réactiver ou révoquer une autorisation ; activer l'IA locale ou cloud ; fermer les sessions ; réinitialiser le mot de passe ; désactiver le compte.
 4. **Journal d'audit** : toutes les actions sensibles, avec contrôle d'intégrité du chaînage.
@@ -20,6 +20,7 @@ Démarche conseillée pour le pilote : rester seul utilisateur, saisir les proje
 | Module | Contenu |
 |---|---|
 | Tableau de bord | Indicateurs par filiale (projets en retard, avancement, créances échues, marchés en retard, pénalités théoriques, livrables à valider, stock, RH, QHSE), présentés filiale par filiale sans total commun |
+| Directives de la DG | La Direction générale émet une directive sur un projet ; l'équipe accuse réception et rend compte ; la DG clôture. Historique complet du suivi |
 | Projets | Projets (phase ESQ → CLOS, statut, budget, alerte de retard), jalons |
 | Chantiers | Chantiers (avancement physique), journal de chantier quotidien, registre des risques |
 | Études, MEP et calculs | Livrables par phase et spécialité avec circuit soumis → validé/rejeté ; 10 moteurs de pré-dimensionnement ; registre de synthèse et conflits MEP |

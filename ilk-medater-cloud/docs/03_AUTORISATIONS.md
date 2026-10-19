@@ -14,7 +14,7 @@
 | Périmètre | Effet | Exemple |
 |---|---|---|
 | Filiale | Tous les modules de la filiale | Directeur d'eurl medater : filiale eurl medater, consulter + valider |
-| Département | Modules du département, dans sa filiale ; pour un service commun, la filiale est précisée | Comptable : « Comptabilité et finances » pour cabinet ILK |
+| Département | Modules du département, dans sa filiale | Comptable du cabinet : « Comptabilité et finances du cabinet » |
 | Module | Un module d'une filiale | Juriste : module « Contrats et marchés » d'eurl medater |
 | Projet | Le projet et ses chantiers, études, documents, QHSE | Conducteur de travaux : projet MED-2026-01 |
 | Document | Un document précis | Bureau de contrôle : un plan, consultation seule |
@@ -23,6 +23,20 @@
 `consulter` (view), `modifier` (edit), `valider` (validate), `exporter` (export). Toute action accordée implique la consultation.
 - **Valider** : situations de travaux, factures annulées, bons de commande, congés, livrables d'études (principe des quatre yeux : l'auteur ne valide pas son propre livrable), références juridiques.
 - **Exporter** : téléchargement des documents confidentiels ou secrets (les documents internes se téléchargent avec la consultation).
+
+## Deux filiales gérées séparément, de A à Z
+Décision de la Direction : **eurl medater** et **cabinet ILK** ont une gestion entièrement séparée.
+- **Seule la Direction générale a accès aux informations des deux filiales.**
+- Chaque intervenant est **rattaché à une seule filiale** (obligatoire à la création du compte). Toutes ses autorisations visent cette filiale : la console refuse le reste, et la base de données aussi (trigger `grants_same_company`).
+- Changer la filiale d'un intervenant exige d'abord de révoquer toutes ses autorisations.
+- Aucun service commun n'ouvre de données : finances, RH et juridique existent dans chaque filiale ; le bureau de la Direction générale est réservé au Directeur.
+- Les intervenants ont des accès limités : en pratique, un projet ou un département de leur filiale, avec les seules actions nécessaires.
+
+## Directives de la Direction générale
+- La Direction générale émet les directives, chacune rattachée à un projet (objet, consignes, priorité, échéance).
+- L'équipe du projet (droit « modifier » sur le projet) en accuse réception, puis rend compte : en cours, réalisée, avec une note à chaque étape.
+- Seule la Direction générale clôture, annule ou rouvre une directive ; le contenu d'une directive émise ne se modifie pas.
+- Les directives ouvertes, en retard et à clôturer apparaissent dans le tableau de bord de la filiale et sont lisibles par l'assistant IA.
 
 ## Gestion financière séparée par filiale
 Décision de la Direction : les finances d'**eurl medater** et du **cabinet ILK** sont gérées séparément.
