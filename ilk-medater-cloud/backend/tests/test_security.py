@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import inspect as sa_inspect
 
 from app import models
-from tests.conftest import DIRECTOR_EMAIL, DIRECTOR_PASSWORD, director_totp, make_client, new_user
+from tests.conftest import DIRECTOR_EMAIL, DIRECTOR_PASSWORD, companies, director_totp, make_client, new_user
 
 
 def test_orm_matches_migrated_schema(owner_db):
@@ -55,7 +55,8 @@ def test_unknown_email_same_error():
 
 
 def test_must_change_password_blocks_business_calls(dg):
-    dg.post("/api/admin/users", json={"email": "mcp@ilk-medater.dz", "full_name": "A B", "temporary_password": "Temporaire-2026!"})
+    dg.post("/api/admin/users", json={"email": "mcp@ilk-medater.dz", "full_name": "A B", "temporary_password": "Temporaire-2026!",
+                                       "company_id": companies(dg)["CONST"]})
     c = make_client()
     r = c.post("/api/auth/login", json={"email": "mcp@ilk-medater.dz", "password": "Temporaire-2026!"})
     assert r.json()["must_change_password"] is True

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from ..authz import Principal
 from ..config import get_settings
-from ..models import (AiConsent, Contract, CoordinationIssue, Deliverable, Document, Employee, Invoice, LeaveRequest,
+from ..models import (AiConsent, Contract, CoordinationIssue, Deliverable, Directive, Document, Employee, Invoice, LeaveRequest,
                       Project, QhseEvent, Site, SiteRisk)
 from ..resources import contract_schedule, invoice_figures
 from ..routers.legal import search_sources
@@ -88,6 +88,13 @@ def collect(s: Session, p: Principal, a: Assistant, question: str, company_id: i
             add("projet", f"project:{pr.id}", f"{pr.code} — {pr.name}",
                 f"Projet {pr.code} « {pr.name} » ; phase {pr.phase} ; statut {pr.status} ; fin prévue {pr.planned_end_date or 'non renseignée'}"
                 f"{' (EN RETARD)' if late else ''} ; budget {pr.budget_amount} DA ; wilaya {pr.wilaya or 'non renseignée'}.")
+    if "projects" in allowed:
+        for dv in s.scalars(scoped(Directive, "projects").where(Directive.status.notin_(["cloturee", "annulee"]))
+                            .order_by(Directive.due_date.nulls_last()).limit(10)):
+            late = dv.due_date and dv.due_date < date.today() and dv.status != "realisee"
+            add("directive DG", f"directive:{dv.id}", dv.title,
+                f"Directive de la Direction générale « {dv.title} » (projet #{dv.project_id}) ; priorité {dv.priority} ; statut {dv.status} ; "
+                f"échéance {dv.due_date or 'non fixée'}{' (EN RETARD)' if late else ''}.")
     if "sites" in allowed:
         for st in s.scalars(scoped(Site, "sites").order_by(Site.id.desc()).limit(8)):
             risks = s.scalar(select(func.count()).select_from(SiteRisk).where(SiteRisk.site_id == st.id, SiteRisk.status == "ouvert"))

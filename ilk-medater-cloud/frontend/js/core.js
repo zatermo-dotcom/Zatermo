@@ -69,8 +69,8 @@ export const day = v => v ? new Date(v).toLocaleDateString('fr-DZ') : '—';
 export const stamp = v => v ? new Date(v).toLocaleString('fr-DZ') : '—';
 
 const TONES = {
-  ok: ['valide', 'validee', 'payee', 'fait', 'receptionne', 'clos', 'resolu', 'livree', 'acceptee', 'actif', 'disponible', 'verifiee', 'active', 'maitrise'],
-  warn: ['soumis', 'soumise', 'en_cours', 'partielle', 'brouillon', 'demandee', 'suspendu', 'suspended', 'maintenance', 'moyen', 'majeure', 'action_en_cours', 'installation', 'non_verifiee', 'haute', 'expired'],
+  ok: ['realisee', 'cloturee', 'valide', 'validee', 'payee', 'fait', 'receptionne', 'clos', 'resolu', 'livree', 'acceptee', 'actif', 'disponible', 'verifiee', 'active', 'maitrise'],
+  warn: ['emise', 'accusee', 'urgente', 'soumis', 'soumise', 'en_cours', 'partielle', 'brouillon', 'demandee', 'suspendu', 'suspended', 'maintenance', 'moyen', 'majeure', 'action_en_cours', 'installation', 'non_verifiee', 'haute', 'expired'],
   crit: ['rejete', 'rejetee', 'en_retard', 'impayee', 'critique', 'eleve', 'bloquante', 'resilie', 'hors_service', 'revoked', 'annulee', 'refusee', 'abrogee_ou_expiree', 'ouvert', 'arrete'],
 };
 export function pill(value) {

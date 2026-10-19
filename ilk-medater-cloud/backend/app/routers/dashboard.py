@@ -8,14 +8,14 @@ from sqlalchemy.orm import Session
 from ..authz import MODULES, Principal, company_ids, org_units
 from ..db import get_db
 from ..deps import current
-from ..models import (Company, Contract, CoordinationIssue, Deliverable, Employee, Invoice, LeaveRequest, Payment,
+from ..models import (Company, Contract, CoordinationIssue, Deliverable, Directive, Employee, Invoice, LeaveRequest, Payment,
                       Project, PurchaseOrder, QhseEvent, Site, SiteRisk, StockItem)
 from ..resources import contract_schedule
 
 router = APIRouter(tags=["dashboard"])
 
 # Bureau du siège -> module ouvert au clic (le reste des modules du département est accessible depuis le bureau).
-PRIMARY_MODULE = {"SHARED-EXEC": "dashboard", "ARCH-FIN": "finance", "SHARED-HR": "hr", "SHARED-LEGAL": "legal",
+PRIMARY_MODULE = {"SHARED-EXEC": "direction", "ARCH-HR": "hr", "ARCH-FIN": "finance", "SHARED-HR": "hr", "SHARED-LEGAL": "legal",
                   "SHARED-IT": "admin", "SHARED-AI": "assistant", "CONST-DIR": "dashboard", "ARCH-DIR": "dashboard",
                   "CONST-TECH": "projects", "CONST-SITE": "sites", "CONST-PROC": "procurement", "CONST-EST": "contracts",
                   "CONST-QHSE": "qhse", "CONST-FIN": "finance", "CONST-HR": "hr", "CONST-PARC": "equipment",
@@ -48,7 +48,7 @@ def building(p: Principal = Depends(current), s: Session = Depends(get_db)):
             proj_ids = p.projects_for(primary, "view")
             proj_comps = set(s.scalars(select(Project.company_id).where(Project.id.in_(proj_ids)))) if proj_ids else set()
             accessible = comps is None or (cid in comps if cid else bool(comps)) or (cid in proj_comps if cid else bool(proj_comps))
-        elif primary == "admin":
+        elif primary in ("admin", "direction"):
             accessible = p.is_director
         elif primary == "assistant":
             accessible = p.ai_local or p.ai_cloud
@@ -72,6 +72,13 @@ def _company_kpis(s: Session, p: Principal, cid: int) -> dict:
             func.coalesce(func.sum(Project.budget_amount).filter(Project.status == "en_cours"), 0),
         ).where(Project.company_id == cid)).one()
         k["projects"] = {"active": row[0], "late": row[1], "active_budget": float(row[2])}
+    open_dir = select(func.count()).select_from(Directive).where(
+        Directive.company_id == cid, Directive.status.notin_(["realisee", "cloturee", "annulee"]), p.scope_clause(Directive, "projects"))
+    n_open = s.scalar(open_dir)
+    if n_open or p.can("projects", "view", cid):
+        k["directives"] = {"open": n_open, "overdue": s.scalar(open_dir.where(Directive.due_date < today)),
+                           "to_close": s.scalar(select(func.count()).select_from(Directive).where(
+                               Directive.company_id == cid, Directive.status == "realisee", p.scope_clause(Directive, "projects")))}
     if p.can("sites", "view", cid):
         row = s.execute(select(func.count(), func.coalesce(func.avg(Site.physical_progress), 0)).where(
             Site.company_id == cid, Site.status.in_(["installation", "en_cours"]))).one()
@@ -132,5 +139,5 @@ def dashboard(p: Principal = Depends(current), s: Session = Depends(get_db)):
         if k:
             out.append({"company_id": c.id, "code": c.code, "name": c.name, "kpis": k})
     return {"companies": out,
-            "note": "Indicateurs calculés uniquement sur les modules autorisés. La gestion financière de chaque filiale "
-                    "est séparée : aucun montant n'est additionné entre eurl medater et cabinet ILK."}
+            "note": "eurl medater et cabinet ILK sont gérés séparément de A à Z : aucun indicateur n'est additionné entre "
+                    "les deux filiales. Seule la Direction générale voit les deux."}

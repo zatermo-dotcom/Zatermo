@@ -12,7 +12,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from ..audit import audit
-from ..authz import ACTIONS, MODULES, Principal, company_ids, load_principal, org_units
+from ..authz import ACTIONS, MODULES, Principal, company_ids, org_units
 from ..db import get_db
 from ..deps import client_ip, director
 from ..models import AiSettings, AuditEvent, Company, Document, Grant, Project, SessionRow, User
@@ -25,6 +25,7 @@ class AccountIn(BaseModel):
     email: EmailStr
     full_name: str = Field(min_length=2, max_length=120)
     job_title: str = Field(default="", max_length=120)
+    company_id: int = Field(description="Filiale de rattachement (obligatoire : un collaborateur appartient à une seule filiale)")
     org_unit_code: Optional[str] = None
     temporary_password: str = Field(min_length=12, max_length=256)
 
@@ -33,6 +34,7 @@ class AccountPatch(BaseModel):
     full_name: Optional[str] = Field(default=None, min_length=2, max_length=120)
     job_title: Optional[str] = Field(default=None, max_length=120)
     org_unit_code: Optional[str] = None
+    company_id: Optional[int] = None
     enabled: Optional[bool] = None
 
 
@@ -69,7 +71,7 @@ class AiIn(BaseModel):
 
 def _user_out(u: User, grants: list[Grant], ai: AiSettings | None, sessions: int) -> dict:
     return {"id": u.id, "email": u.email, "full_name": u.full_name, "job_title": u.job_title,
-            "org_unit_code": u.org_unit_code, "enabled": u.enabled, "is_group_director": u.is_group_director,
+            "org_unit_code": u.org_unit_code, "company_id": u.company_id, "enabled": u.enabled, "is_group_director": u.is_group_director,
             "mfa_enabled": u.mfa_enabled, "must_change_password": u.must_change_password,
             "locked": bool(u.locked_until and u.locked_until > now()),
             "last_login_at": u.last_login_at, "active_sessions": sessions,
@@ -98,17 +100,17 @@ def list_users(p: Principal = Depends(director), s: Session = Depends(get_db)):
 def create_user(data: AccountIn, request: Request, p: Principal = Depends(director), s: Session = Depends(get_db)):
     if s.scalar(select(User).where(func.lower(User.email) == data.email.lower())):
         raise HTTPException(409, "Un compte existe déjà avec cet email")
-    if data.org_unit_code and data.org_unit_code not in org_units(s):
-        raise HTTPException(422, "Département inconnu")
+    _check_company(s, data.company_id)
+    _check_unit(s, data.org_unit_code, data.company_id)
     try:
         ph = hash_password(data.temporary_password)
     except ValueError as e:
         raise HTTPException(422, str(e))
     u = User(email=data.email.lower(), full_name=data.full_name, job_title=data.job_title,
-             org_unit_code=data.org_unit_code, password_hash=ph, enabled=True, must_change_password=True)
+             org_unit_code=data.org_unit_code, company_id=data.company_id, password_hash=ph, enabled=True, must_change_password=True)
     s.add(u)
     s.flush()
-    audit(s, p.id, "user.created", f"user:{u.id}", details={"email": u.email, "rights": "aucun"}, ip=client_ip(request))
+    audit(s, p.id, "user.created", f"user:{u.id}", details={"email": u.email, "company_id": u.company_id, "rights": "aucun"}, ip=client_ip(request))
     s.commit()
     return {"id": u.id, "rights": "aucun droit métier tant que le Directeur n'en attribue pas"}
 
@@ -121,8 +123,14 @@ def patch_user(user_id: int, data: AccountPatch, request: Request, p: Principal 
     if u.is_group_director and data.enabled is False:
         raise HTTPException(422, "Le compte du Directeur général ne peut pas être désactivé depuis l'application")
     changes = data.model_dump(exclude_none=True)
-    if "org_unit_code" in changes and changes["org_unit_code"] not in org_units(s):
-        raise HTTPException(422, "Département inconnu")
+    if u.is_group_director and ("company_id" in changes or "org_unit_code" in changes):
+        raise HTTPException(422, "Le Directeur général n'est rattaché à aucune filiale : il voit les deux")
+    if "company_id" in changes:
+        _check_company(s, changes["company_id"])
+        if s.scalar(select(func.count()).select_from(Grant).where(Grant.user_id == u.id, Grant.status != "revoked")):
+            raise HTTPException(409, "Révoquer les autorisations du collaborateur avant de changer sa filiale de rattachement")
+    if "org_unit_code" in changes or "company_id" in changes:
+        _check_unit(s, changes.get("org_unit_code", u.org_unit_code), changes.get("company_id", u.company_id))
     for k, v in changes.items():
         setattr(u, k, v)
     if data.enabled is False:
@@ -158,6 +166,26 @@ def revoke_sessions(user_id: int, request: Request, p: Principal = Depends(direc
     return {"revoked": n}
 
 
+def _check_company(s: Session, cid: int | None) -> None:
+    if cid not in company_ids(s).values():
+        raise HTTPException(422, "Filiale de rattachement inconnue")
+
+
+def _check_unit(s: Session, code: str | None, cid: int | None) -> None:
+    """Le département d'un collaborateur appartient à sa filiale (aucun service commun porteur de données)."""
+    if not code:
+        return
+    unit = org_units(s).get(code)
+    if not unit or not unit.active:
+        raise HTTPException(422, "Département inconnu ou supprimé")
+    if unit.company_code == "GROUP":
+        if unit.code == "SHARED-EXEC" or unit.modules:
+            raise HTTPException(422, "Ce service relève de la seule Direction générale")
+        return
+    if company_ids(s)[unit.company_code] != cid:
+        raise HTTPException(422, "Filiales séparées : le département appartient à l'autre filiale")
+
+
 def _revoke_sessions(s: Session, user_id: int) -> int:
     n = 0
     for row in s.scalars(select(SessionRow).where(SessionRow.user_id == user_id, SessionRow.revoked_at.is_(None))):
@@ -188,26 +216,13 @@ def _validate_scope(s: Session, g: GrantIn) -> int | None:
         if not unit.modules:
             raise HTTPException(422, "Ce service n'ouvre aucun module métier")
         if unit.company_code == "GROUP":
-            if g.company_id not in comps.values():
-                raise HTTPException(422, "Service commun : préciser la filiale dont les données sont ouvertes")
-            return g.company_id
+            raise HTTPException(422, "Les services de la Direction générale ne s'ouvrent pas par autorisation")
         return comps[unit.company_code]
     ref = int(g.scope_ref) if g.scope_ref.isdigit() else None
     obj = s.get(Project if g.scope_type == "project" else Document, ref) if ref else None
     if not obj:
         raise HTTPException(422, "Projet ou document introuvable")
     return obj.company_id
-
-
-def _check_finance_separation(s: Session, user: User, extra: Grant | None = None) -> None:
-    """Gestion financière séparée : hors Directeur, un compte n'accède aux finances que d'une seule filiale."""
-    p = load_principal(s, user)
-    if extra is not None:
-        p.grants = [g for g in p.grants if g.id != extra.id] + [extra]
-    comps = p.companies_for("finance", "view") or set()
-    if len(comps) > 1:
-        raise HTTPException(422, "Gestion financière séparée : ce collaborateur aurait accès aux finances des deux filiales. "
-                                 "Les finances d'eurl medater et du cabinet ILK doivent rester confiées à des comptes distincts.")
 
 
 @router.post("/grants", status_code=201)
@@ -220,9 +235,13 @@ def create_grant(data: GrantIn, request: Request, p: Principal = Depends(directo
     if data.expires_at and data.expires_at <= now():
         raise HTTPException(422, "La date d'expiration doit être future")
     cid = _validate_scope(s, data)
+    if target.company_id is None:
+        raise HTTPException(422, "Rattacher d'abord ce collaborateur à une filiale")
+    if cid != target.company_id:
+        raise HTTPException(422, "Filiales séparées : ce collaborateur appartient à l'autre filiale. "
+                                 "Seule la Direction générale accède aux informations des deux filiales.")
     g = Grant(user_id=data.user_id, company_id=cid, scope_type=data.scope_type, scope_ref=data.scope_ref,
               actions=list(data.actions), expires_at=data.expires_at, note=data.note, granted_by=p.id, changed_by=p.id)
-    _check_finance_separation(s, target, g)
     s.add(g)
     s.flush()
     audit(s, p.id, "grant.created", f"grant:{g.id}", company_id=cid,
@@ -252,8 +271,6 @@ def patch_grant(grant_id: int, data: GrantPatch, request: Request, p: Principal 
         g.expires_at = data.expires_at
     if data.actions:
         g.actions = sorted(set(data.actions), key=ACTIONS.index)
-    if g.status == "active":
-        _check_finance_separation(s, s.get(User, g.user_id), g)
     g.changed_by = p.id
     audit(s, p.id, f"grant.{data.status or 'updated'}", f"grant:{g.id}", company_id=g.company_id,
           details={"before": before, "changes": data.model_dump(exclude_none=True)}, ip=client_ip(request))

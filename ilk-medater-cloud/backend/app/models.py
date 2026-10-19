@@ -52,6 +52,7 @@ class User(Base):
     full_name: Mapped[str] = dflt()
     job_title: Mapped[str] = dflt()
     org_unit_code: Mapped[Optional[str]] = mapped_column(ForeignKey("org_units.code"))
+    company_id: Mapped[Optional[int]] = mapped_column(ForeignKey("companies.id"))
     password_hash: Mapped[str]
     enabled: Mapped[bool] = dflt()
     is_group_director: Mapped[bool] = dflt()
@@ -534,4 +535,32 @@ class LegalSource(Base):
     verified_by: Mapped[Optional[int]]
     verified_at: Mapped[Optional[datetime]]
     created_by: Mapped[Optional[int]]
+    created_at: Mapped[datetime] = dflt()
+
+
+class Directive(Base):
+    __tablename__ = "directives"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    company_id: Mapped[int]
+    project_id: Mapped[int]
+    title: Mapped[str]
+    instructions: Mapped[str]
+    priority: Mapped[str] = dflt()
+    due_date: Mapped[Optional[date]]
+    status: Mapped[str] = dflt()
+    issued_by: Mapped[int]
+    issued_at: Mapped[datetime] = dflt()
+    closed_by: Mapped[Optional[int]]
+    closed_at: Mapped[Optional[datetime]]
+    updated_at: Mapped[datetime] = dflt()
+
+
+class DirectiveUpdate(Base):
+    __tablename__ = "directive_updates"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    directive_id: Mapped[int]
+    company_id: Mapped[int]
+    author_id: Mapped[int]
+    note: Mapped[str]
+    new_status: Mapped[Optional[str]]
     created_at: Mapped[datetime] = dflt()

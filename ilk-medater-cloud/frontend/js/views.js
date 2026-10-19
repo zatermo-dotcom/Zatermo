@@ -10,6 +10,8 @@ export async function dashboard(host) {
     const k = c.kpis;
     const tiles = [];
     if (k.projects) tiles.push(kpi('Projets actifs', k.projects.active), kpi('Projets en retard', k.projects.late, k.projects.late ? 'crit' : ''), kpi('Budget actif', money(k.projects.active_budget)));
+    if (k.directives) tiles.push(kpi('Directives DG ouvertes', k.directives.open), kpi('Directives en retard', k.directives.overdue, k.directives.overdue ? 'crit' : ''),
+      kpi('Réalisées, à clôturer', k.directives.to_close, k.directives.to_close ? 'warn' : ''));
     if (k.sites) tiles.push(kpi('Chantiers actifs', k.sites.active), kpi('Avancement moyen', `${num(k.sites.avg_progress)} %`), kpi('Risques élevés ouverts', k.sites.high_risks_open, k.sites.high_risks_open ? 'crit' : ''));
     if (k.finance) tiles.push(kpi('Créances', money(k.finance.receivables)), kpi('Créances échues', money(k.finance.receivables_overdue), k.finance.receivables_overdue ? 'warn' : ''));
     if (k.contracts) tiles.push(kpi('Marchés en cours', k.contracts.active), kpi('Marchés en retard', k.contracts.late, k.contracts.late ? 'crit' : ''), kpi('Pénalités théoriques', money(k.contracts.theoretical_penalties)));
@@ -247,3 +249,59 @@ export async function assistant(host, me) {
 }
 
 export { invalidateRefs };
+
+// ------------------------------------------------------------------ Directives de la Direction générale (suivi par projet)
+const DIR_STEPS = { emise: 'émise', accusee: 'accusée', en_cours: 'en cours', realisee: 'réalisée', cloturee: 'clôturée', annulee: 'annulée' };
+export async function directivesView(host, me, openId = null) {
+  const [list, projects, org] = await Promise.all([api('/directives'), api('/projects'), api('/org')]);
+  const companyName = id => org.companies.find(c => c.id === id)?.name ?? '';
+  const detail = el('div');
+  const canReport = me.is_group_director || me.modules.projects?.edit;
+
+  const issueForm = el('form', { class: 'form-grid' },
+    field('Projet *', el('select', { name: 'project_id', required: true }, projects.map(p => el('option', { value: p.id }, `${companyName(p.company_id)} · ${p.code} — ${p.name}`)))),
+    field('Objet *', el('input', { name: 'title', required: true, maxlength: 200 })),
+    field('Priorité', el('select', { name: 'priority' }, ['normale', 'haute', 'urgente'].map(x => el('option', { value: x }, x)))),
+    field('Échéance', el('input', { name: 'due_date', type: 'date' })),
+    field('Consignes *', el('textarea', { name: 'instructions', required: true, maxlength: 8000 })),
+    el('button', { class: 'btn' }, 'Émettre la directive'));
+  issueForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const body = { project_id: Number(issueForm.project_id.value), title: issueForm.title.value, instructions: issueForm.instructions.value, priority: issueForm.priority.value };
+    if (issueForm.due_date.value) body.due_date = issueForm.due_date.value;
+    await guard(() => api('/directives', { method: 'POST', body }), 'Directive émise'); directivesView(host, me);
+  });
+
+  async function open(id) {
+    const d = await api(`/directives/${id}`);
+    const note = el('textarea', { maxlength: 4000, placeholder: 'Compte rendu, difficulté rencontrée, décision…' });
+    const steps = me.is_group_director ? ['', 'en_cours', 'cloturee', 'annulee'] : ['', 'accusee', 'en_cours', 'realisee'];
+    const status = el('select', {}, steps.map(s => el('option', { value: s }, s ? `→ ${DIR_STEPS[s]}` : 'note seule (statut inchangé)')));
+    const send = async () => {
+      if (note.value.trim().length < 2) return;
+      await guard(() => api(`/directives/${id}/updates`, { method: 'POST', body: { note: note.value, new_status: status.value || null } }), 'Suivi enregistré');
+      directivesView(host, me, id);
+    };
+    const closed = ['cloturee', 'annulee'].includes(d.status);
+    clear(detail, el('div', { class: 'card stack' },
+      el('div', { class: 'row between' }, el('h2', {}, d.title), el('span', { class: 'row' }, pill(d.priority), pill(d.status), d.overdue ? pill('en_retard') : null)),
+      el('div', { class: 'muted' }, `${companyName(d.company_id)} · ${d.project.code} — ${d.project.name} · émise le ${stamp(d.issued_at)} · échéance ${day(d.due_date)}`),
+      el('div', { class: 'chat-answer' }, d.instructions),
+      el('h3', {}, 'Suivi'),
+      d.updates.length ? table([{ label: 'Date', render: u => stamp(u.created_at) }, { label: 'Auteur', key: 'author' },
+        { label: 'Statut', render: u => u.new_status ? pill(u.new_status) : '—' }, { label: 'Compte rendu', key: 'note' }], d.updates)
+        : el('div', { class: 'muted' }, 'Aucun retour pour l\'instant.'),
+      canReport && (!closed || me.is_group_director) ? el('div', { class: 'stack' }, note, el('div', { class: 'row' }, status, el('button', { class: 'btn', type: 'button', onclick: send }, 'Enregistrer'))) : null));
+  }
+
+  clear(host, el('div', { class: 'stack' },
+    el('div', { class: 'notice info' }, 'La Direction générale donne les directives ; chaque directive est suivie dans son projet. L\'équipe du projet en accuse réception puis rend compte jusqu\'à sa réalisation ; seule la Direction générale clôture ou annule.'),
+    me.is_group_director ? el('details', { class: 'card' }, el('summary', {}, 'Nouvelle directive'), el('div', { style: 'margin-top:10px' }, issueForm)) : null,
+    table([{ label: 'Filiale', render: d => companyName(d.company_id) }, { label: 'Projet', render: d => `${d.project.code} — ${d.project.name}` },
+      { label: 'Directive', key: 'title' }, { label: 'Priorité', render: d => pill(d.priority) }, { label: 'Échéance', render: d => day(d.due_date) },
+      { label: 'Statut', render: d => el('span', {}, pill(d.status), d.overdue ? ' ' : '', d.overdue ? pill('en_retard') : '') },
+      { label: '', render: d => el('button', { class: 'btn sm ghost', onclick: () => open(d.id) }, 'Ouvrir le suivi') }], list,
+      { empty: 'Aucune directive pour les projets de votre périmètre.' }),
+    detail));
+  if (openId) await open(openId);
+}

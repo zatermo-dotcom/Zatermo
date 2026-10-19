@@ -96,10 +96,11 @@ def companies(dg):
     return {c["code"]: c["id"] for c in dg.get("/api/admin/catalog").json()["companies"]}
 
 
-def new_user(dg, email=None, password="Temporaire-2026!", grants=(), ai=None):
+def new_user(dg, email=None, password="Temporaire-2026!", grants=(), ai=None, company="CONST"):
     """Crée un compte via la console DG, applique les autorisations, et renvoie un client connecté."""
     email = email or f"u{uuid.uuid4().hex[:8]}@ilk-medater.dz"
-    r = dg.post("/api/admin/users", json={"email": email, "full_name": "Collaborateur Test", "temporary_password": password})
+    r = dg.post("/api/admin/users", json={"email": email, "full_name": "Collaborateur Test", "temporary_password": password,
+                                          "company_id": companies(dg)[company]})
     assert r.status_code == 201, r.text
     uid = r.json()["id"]
     for g in grants:

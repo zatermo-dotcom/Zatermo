@@ -19,13 +19,10 @@ def test_finance_access_limited_to_one_company(dg):
                  {"scope_type": "org_unit", "scope_ref": "ARCH-FIN"}):
         r = dg.post("/api/admin/grants", json={"user_id": u.user_id, "actions": ["view"], **body})
         assert r.status_code == 422 and "séparée" in r.json()["detail"]
-    # Un accès non financier à l'autre filiale reste possible
-    assert dg.post("/api/admin/grants", json={"user_id": u.user_id, "scope_type": "module", "scope_ref": "projects",
-                                              "company_id": ids["ARCH"], "actions": ["view"]}).status_code == 201
     assert u.get("/api/auth/me").json()["modules"]["finance"]["companies"] == ["CONST"]
 
 
-def test_reactivation_cannot_bypass_separation(dg):
+def test_suspended_grant_does_not_open_other_company(dg):
     ids = companies(dg)
     u = new_user(dg)
     g1 = dg.post("/api/admin/grants", json={"user_id": u.user_id, "scope_type": "module", "scope_ref": "finance",
@@ -33,20 +30,18 @@ def test_reactivation_cannot_bypass_separation(dg):
     dg.patch(f"/api/admin/grants/{g1['id']}", json={"status": "suspended"})
     g2 = dg.post("/api/admin/grants", json={"user_id": u.user_id, "scope_type": "module", "scope_ref": "finance",
                                             "company_id": ids["ARCH"], "actions": ["view"]})
-    assert g2.status_code == 201  # possible : l'accès eurl medater est suspendu
-    r = dg.patch(f"/api/admin/grants/{g1['id']}", json={"status": "active"})
-    assert r.status_code == 422
+    assert g2.status_code == 422
 
 
 def test_each_subsidiary_has_its_own_finance_department(dg):
     ids = companies(dg)
     units = {u["code"]: u for u in dg.get("/api/admin/catalog").json()["org_units"]}
-    assert "SHARED-FIN" not in units and "finance" not in units["SHARED-EXEC"]["modules"]
+    assert "SHARED-FIN" not in units and "SHARED-EXEC" not in units
     assert units["ARCH-FIN"]["company_code"] == "ARCH" and units["CONST-FIN"]["company_code"] == "CONST"
     r = dg.post("/api/admin/grants", json={"user_id": new_user(dg).user_id, "scope_type": "org_unit", "scope_ref": "SHARED-FIN",
                                            "company_id": ids["ARCH"], "actions": ["view"]})
     assert r.status_code == 422
-    u = new_user(dg, grants=[{"scope_type": "org_unit", "scope_ref": "ARCH-FIN", "actions": ["view"]}])
+    u = new_user(dg, grants=[{"scope_type": "org_unit", "scope_ref": "ARCH-FIN", "actions": ["view"]}], company="ARCH")
     assert u.get("/api/auth/me").json()["modules"]["finance"]["companies"] == ["ARCH"]
     offices = {o["code"] for o in dg.get("/api/building").json()["offices"]}
     assert "ARCH-FIN" in offices and "SHARED-FIN" not in offices

@@ -41,7 +41,7 @@ class Assistant:
 ASSISTANTS = {a.code: a for a in [
     Assistant("direction", "Assistant de la Direction générale", "SHARED-EXEC",
               ["projects", "sites", "finance", "contracts", "hr", "qhse", "studies"],
-              "synthèse des indicateurs, retards, créances, risques et décisions à prendre"),
+              "synthèse des indicateurs, directives de la Direction générale, retards, créances, risques et décisions à prendre"),
     Assistant("mep-coord", "Coordinateur MEP", "ARCH-MEP-COORD", ["projects", "studies", "documents"],
               "synthèse BIM, conflits entre réseaux, réservations, cohérence des plans des six spécialités MEP"),
     Assistant("mep-cfo", "MEP 01 — Courant fort", "ARCH-MEP-CFO", ["projects", "studies", "documents"],
@@ -66,7 +66,7 @@ ASSISTANTS = {a.code: a for a in [
     Assistant("gc", "Génie civil et structure", "ARCH-GC", ["projects", "studies", "documents"],
               "béton armé, fondations, descente de charges, pré-dimensionnement, coordination avec l'architecture et le MEP",
               ["gc.column"]),
-    Assistant("juridique", "Juriste — droit algérien", "SHARED-LEGAL", ["contracts", "legal", "projects"],
+    Assistant("juridique", "Juriste — droit algérien", "CONST-LEGAL", ["contracts", "legal", "projects"],
               "marchés publics, urbanisme et construction, CCAG, ODS, avenants, délais, pénalités, réclamations",
               legal_strict=True),
     Assistant("chantier", "Conduite de chantier", "CONST-SITE", ["sites", "projects", "qhse"],
@@ -74,5 +74,5 @@ ASSISTANTS = {a.code: a for a in [
     Assistant("prix", "Études de prix", "CONST-EST", ["contracts", "projects"], "appels d'offres, BPU, DQE, estimations, situations"),
     Assistant("finance", "Finances et créances (par filiale)", "CONST-FIN", ["finance", "contracts"],
               "factures, paiements, créances et trésorerie d'une seule filiale à la fois (comptes séparés)"),
-    Assistant("rh", "Ressources humaines", "SHARED-HR", ["hr"], "effectifs, contrats, congés"),
+    Assistant("rh", "Ressources humaines", "CONST-HR", ["hr"], "effectifs, contrats, congés"),
 ]}

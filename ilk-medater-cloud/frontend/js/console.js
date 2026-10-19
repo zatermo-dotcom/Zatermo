@@ -20,12 +20,20 @@ export async function directorConsole(host) {
   const accForm = el('form', { class: 'form-grid' },
     field('Email *', el('input', { name: 'email', type: 'email', required: true })), field('Nom et prénom *', el('input', { name: 'full_name', required: true })),
     field('Fonction', el('input', { name: 'job_title' })),
-    field('Département', el('select', { name: 'org_unit_code' }, el('option', { value: '' }, '—'), cat.org_units.map(u => el('option', { value: u.code }, u.name)))),
+    field('Filiale de rattachement *', el('select', { name: 'company_id', required: true }, cat.companies.map(c => el('option', { value: c.id }, c.name)))),
+    field('Département', el('select', { name: 'org_unit_code' })),
     field('Mot de passe temporaire *', el('input', { name: 'temporary_password', type: 'text', minlength: 12, required: true, autocomplete: 'off' })),
     el('button', { class: 'btn' }, 'Créer le compte (sans aucun droit)'));
+  const refreshUnits = () => {
+    const code = cat.companies.find(c => String(c.id) === accForm.company_id.value)?.code;
+    accForm.org_unit_code.replaceChildren(el('option', { value: '' }, '—'),
+      ...cat.org_units.filter(u => u.company_code === code).map(u => el('option', { value: u.code }, u.name)));
+  };
+  accForm.company_id.addEventListener('change', refreshUnits); refreshUnits();
   accForm.addEventListener('submit', async e => {
     e.preventDefault();
     const body = Object.fromEntries(new FormData(accForm));
+    body.company_id = Number(body.company_id);
     if (!body.org_unit_code) delete body.org_unit_code;
     await guard(() => api('/admin/users', { method: 'POST', body }), 'Compte créé : aucun droit tant que vous n\'en attribuez pas');
     reload();
@@ -45,20 +53,24 @@ export async function directorConsole(host) {
   const gNote = el('input', { name: 'note', maxlength: 300, placeholder: 'Motif, référence de la décision…' });
   const refreshRef = () => {
     const t = gType.value;
+    const target = others.find(u => String(u.id) === gUser.value);
+    const own = cat.companies.find(c => c.id === target?.company_id);
     gRefDoc.hidden = t !== 'document'; gRef.hidden = t === 'document';
     let opts = [];
-    if (t === 'company') opts = cat.companies.map(c => [c.code, c.name]);
-    if (t === 'org_unit') opts = cat.org_units.map(u => [u.code, `${u.name}${u.company_code === 'GROUP' ? ' (service commun)' : ''}`]);
+    if (t === 'company') opts = own ? [[own.code, own.name]] : [];
+    if (t === 'org_unit') opts = cat.org_units.filter(u => u.company_code === own?.code).map(u => [u.code, u.name]);
     if (t === 'module') opts = cat.modules.map(m => [m.code, m.name]);
-    if (t === 'project') opts = cat.projects.map(p => [p.id, `${p.code} — ${p.name} (${companyName(p.company_id)})`]);
+    if (t === 'project') opts = cat.projects.filter(p => p.company_id === own?.id).map(p => [p.id, `${p.code} — ${p.name}`]);
     gRef.replaceChildren(...opts.map(([v, l]) => el('option', { value: v }, l)));
-    const unit = cat.org_units.find(u => u.code === gRef.value);
-    companyField.hidden = !(t === 'module' || (t === 'org_unit' && unit?.company_code === 'GROUP'));
+    gCompany.replaceChildren(...(own ? [el('option', { value: own.id }, own.name)] : []));
+    companyField.hidden = t !== 'module';
+    ownNote.textContent = own ? `Filiale de rattachement : ${own.name}. Aucun accès à l'autre filiale n'est possible.` : 'Collaborateur sans filiale : le rattacher d\'abord.';
   };
-  gType.addEventListener('change', refreshRef); gRef.addEventListener('change', refreshRef); refreshRef();
+  const ownNote = el('div', { class: 'notice info' });
+  gType.addEventListener('change', refreshRef); gUser.addEventListener('change', refreshRef); refreshRef();
   const grantForm = el('form', { class: 'stack' }, el('div', { class: 'form-grid' }, field('Collaborateur', gUser), field('Périmètre', gType),
     field('Élément', el('div', {}, gRef, gRefDoc)), companyField, field('Expiration (facultatif)', gExp), field('Note', gNote)),
-    el('div', {}, el('div', { class: 'muted' }, 'Actions autorisées (toute action implique la consultation) :'), actions),
+    ownNote, el('div', {}, el('div', { class: 'muted' }, 'Actions autorisées (toute action implique la consultation) :'), actions),
     el('div', {}, el('button', { class: 'btn', disabled: !others.length }, 'Attribuer l\'autorisation')));
   grantForm.addEventListener('submit', async e => {
     e.preventDefault();
@@ -84,6 +96,7 @@ export async function directorConsole(host) {
     return el('div', { class: 'card stack' },
       el('div', { class: 'row between' },
         el('div', {}, el('b', {}, u.full_name), ' ', el('span', { class: 'muted' }, `<${u.email}> ${u.job_title || ''}`), ' ',
+          u.is_group_director ? null : pill(u.company_id ? companyName(u.company_id) : 'sans filiale'), ' ',
           u.is_group_director ? pill('Directeur général') : pill(u.enabled ? 'actif' : 'désactivé'), u.locked ? pill('verrouillé') : null,
           u.mfa_enabled ? pill('MFA') : null, el('span', { class: 'muted' }, ` · dernière connexion ${stamp(u.last_login_at)} · sessions ${u.active_sessions}`)),
         u.is_group_director ? null : el('span', { class: 'row' },
@@ -115,7 +128,7 @@ export async function directorConsole(host) {
   };
 
   clear(host, el('div', { class: 'stack' },
-    el('div', { class: 'notice info' }, 'Règle du groupe : seul le Directeur général attribue les droits. Un compte créé n\'a aucun droit métier. La base de données refuse toute autorisation dont l\'auteur n\'est pas le Directeur.'),
+    el('div', { class: 'notice info' }, 'Règles du groupe : eurl medater et cabinet ILK sont gérés séparément de A à Z. Seule la Direction générale voit les deux filiales et attribue les droits. Chaque intervenant est rattaché à une seule filiale, avec des accès limités ; la base de données refuse toute autorisation hors de cette filiale.'),
     el('div', { class: 'grid g2' }, el('div', { class: 'card stack' }, el('h2', {}, 'Nouveau compte'), accForm), el('div', { class: 'card stack' }, el('h2', {}, 'Attribuer une autorisation'), grantForm)),
     el('h3', {}, `Comptes (${users.length})`), users.map(userCard),
     el('details', { class: 'card' }, el('summary', {}, 'Journal d\'audit'), el('div', { style: 'margin-top:10px' }, auditBox))));

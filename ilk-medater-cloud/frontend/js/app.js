@@ -2,7 +2,7 @@
 import { api, ApiError, clear, el, field, guard, toast } from './core.js';
 import { directorConsole } from './console.js';
 import { invalidateRefs, tabs } from './modules.js';
-import { assistant, dashboard, documents, legal, perCompany, studies } from './views.js';
+import { assistant, dashboard, directivesView, documents, legal, perCompany, studies } from './views.js';
 
 const $ = id => document.getElementById(id);
 let me = null;
@@ -86,6 +86,7 @@ const can = m => me?.modules?.[m]?.any;
 const ROUTES = [
   { id: 'hq', label: 'Siège virtuel 3D', group: 'Navigation', ok: () => true, render: renderHQ },
   { id: 'dashboard', label: 'Tableau de bord', group: 'Navigation', ok: () => true, render: h => dashboard(h) },
+  { id: 'directives', label: 'Directives de la DG', group: 'Navigation', ok: () => me.is_group_director || can('projects'), render: h => directivesView(h, me) },
   { id: 'projects', label: 'Projets', group: 'Métiers', ok: () => can('projects'), render: h => tabs(h, [{ key: 'projects' }, { key: 'milestones' }], me) },
   { id: 'sites', label: 'Chantiers', group: 'Métiers', ok: () => can('sites'), render: h => tabs(h, [{ key: 'sites' }, { key: 'daily-reports' }, { key: 'site-risks' }], me) },
   { id: 'studies', label: 'Études, MEP et calculs', group: 'Métiers', ok: () => can('studies'), render: h => studies(h, me) },
@@ -101,7 +102,7 @@ const ROUTES = [
   { id: 'assistant', label: 'ilk.medater AI', group: 'Assistance', ok: () => me.ai_local || me.ai_cloud, render: h => assistant(h, me) },
   { id: 'console', label: 'Console du Directeur', group: 'Direction', ok: () => me.is_group_director, render: h => directorConsole(h) },
 ];
-const OFFICE_ROUTE = { dashboard: 'dashboard', admin: 'console', assistant: 'assistant' };
+const OFFICE_ROUTE = { dashboard: 'dashboard', admin: 'console', assistant: 'assistant', direction: 'directives' };
 
 function renderNav(active) {
   const nav = $('nav');

@@ -10,7 +10,7 @@ from .config import get_settings
 from .crud import build_router
 from .db import SessionLocal
 from .resources import RESOURCES
-from .routers import admin, ai, auth, dashboard, documents, legal, studies
+from .routers import admin, ai, auth, dashboard, directives, documents, legal, studies
 from .security import CSRF_HEADER, limiter
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -48,7 +48,7 @@ def health():
     return {"status": "ok", "version": __version__}
 
 
-for r in (auth.router, admin.router, dashboard.router, studies.router, documents.router, legal.router, ai.router):
+for r in (auth.router, admin.router, dashboard.router, directives.router, studies.router, documents.router, legal.router, ai.router):
     api.include_router(r)
 for res in RESOURCES:
     api.include_router(build_router(res))

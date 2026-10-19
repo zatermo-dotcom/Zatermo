@@ -75,17 +75,17 @@ def test_org_unit_grant(dg, setup):
     caps = u.get("/api/auth/me").json()["modules"]
     assert caps["finance"]["companies"] == ["CONST"] and caps["contracts"]["companies"] == ["CONST"]
     assert caps["hr"]["any"] is False and caps["projects"]["any"] is False
-    # Service commun : la filiale doit être précisée
-    r = dg.post("/api/admin/grants", json={"user_id": u.user_id, "scope_type": "org_unit", "scope_ref": "SHARED-HR", "actions": ["view"]})
-    assert r.status_code == 422
+    # Plus de service commun porteur de données : RH par filiale
     r = dg.post("/api/admin/grants", json={"user_id": u.user_id, "scope_type": "org_unit", "scope_ref": "SHARED-HR",
-                                           "company_id": setup["ARCH"]["company"], "actions": ["view"]})
+                                           "company_id": setup["CONST"]["company"], "actions": ["view"]})
+    assert r.status_code == 422
+    r = dg.post("/api/admin/grants", json={"user_id": u.user_id, "scope_type": "org_unit", "scope_ref": "CONST-HR", "actions": ["view"]})
     assert r.status_code == 201
-    assert u.get("/api/auth/me").json()["modules"]["hr"]["companies"] == ["ARCH"]
+    assert u.get("/api/auth/me").json()["modules"]["hr"]["companies"] == ["CONST"]
 
 
 def test_suspend_expire_revoke(dg, setup):
-    u = new_user(dg)
+    u = new_user(dg, company="ARCH")
     g = dg.post("/api/admin/grants", json={"user_id": u.user_id, "scope_type": "company", "scope_ref": "ARCH", "actions": ["view"]}).json()
     assert len(u.get("/api/projects").json()) >= 1
     dg.patch(f"/api/admin/grants/{g['id']}", json={"status": "suspended"})

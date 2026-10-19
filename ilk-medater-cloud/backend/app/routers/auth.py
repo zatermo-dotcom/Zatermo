@@ -187,5 +187,5 @@ def logout(response: Response, request: Request, s: Session = Depends(get_db), c
 def me(p: Principal = Depends(current)):
     u = p.user
     return {"id": u.id, "email": u.email, "full_name": u.full_name, "job_title": u.job_title,
-            "org_unit_code": u.org_unit_code, "is_group_director": u.is_group_director,
+            "org_unit_code": u.org_unit_code, "company_id": u.company_id, "is_group_director": u.is_group_director,
             "mfa_enabled": u.mfa_enabled, **p.capabilities()}
