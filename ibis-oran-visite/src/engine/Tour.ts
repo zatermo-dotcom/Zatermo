@@ -40,6 +40,7 @@ export class Tour {
   private clip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 2.6);
   private raycaster = new THREE.Raycaster();
   private lastTap = 0;
+  private insetRight = 0;
   private keys = new Set<string>();
   private frameId = 0;
   private listeners: (() => void)[] = [];
@@ -150,6 +151,69 @@ export class Tour {
     this.onView?.(id);
   }
 
+  /** Vue frontale d'une face de walls.json (contrôle face à l'élévation du PDF). */
+  goToFace(id: string) {
+    const f = this.data.walls.faces.find((x) => x.id === id); if (!f) return;
+    const L = Math.hypot(f.b[0] - f.a[0], f.b[1] - f.a[1]);
+    const mx = (f.a[0] + f.b[0]) / 2; const my = (f.a[1] + f.b[1]) / 2;
+    const hz = this.data.geometry.heights; const hc = (hz.dessousGorge.value + 0.0) / 2 + 0.1;
+    const fov = 55; const vh = hz.dessousGorge.value + 0.3;
+    const visW = (this.container.clientWidth || 1) - Math.min(this.insetRight, (this.container.clientWidth || 1) * 0.6);
+    const aspect = Math.max(0.6, visW / (this.container.clientHeight || 1));
+    const need = Math.max(L * 1.15 / aspect, vh) / (2 * Math.tan(THREE.MathUtils.degToRad(fov / 2)));
+    // recul limité par la pièce ; si l'axe est bloqué (retours, joues), vue oblique de ±20 à ±60°
+    const reach = (dx: number, dy: number) => {
+      let d = 0.3;
+      while (d < need && this.insideRoom(mx + dx * (d + 0.15), my + dy * (d + 0.15))) d += 0.05;
+      return d;
+    };
+    let best = { d: 0, dx: f.n[0], dy: f.n[1] };
+    for (const deg of [0, 20, -20, 40, -40, 60, -60]) {
+      const a = THREE.MathUtils.degToRad(deg); const c = Math.cos(a); const sn = Math.sin(a);
+      const dx = f.n[0] * c - f.n[1] * sn; const dy = f.n[0] * sn + f.n[1] * c;
+      const d = reach(dx, dy);
+      if (d >= Math.min(need, 1.5)) { best = { d, dx, dy }; break; }
+      if (d > best.d) best = { d, dx, dy };
+    }
+    const pos = new THREE.Vector3(mx + best.dx * best.d, hc, my + best.dy * best.d);
+    this.flyTo(pos, new THREE.Vector3(mx, hc, my), fov, 1100);
+    this.onView?.(null);
+  }
+
+  /** Déplacement vers un point du plan (double-clic sur le plan SVG), en conservant la direction du regard. */
+  moveToPlan(x: number, y: number) {
+    if (!this.insideRoom(x, y)) return false;
+    const eye = this.data.cameras.eyeHeight;
+    const dir = this.camera.getWorldDirection(new THREE.Vector3()); dir.y = 0;
+    if (this.overview || dir.lengthSq() < 1e-4) dir.set(9.15 - x, 0, 6.4 - y);
+    dir.normalize();
+    const pos = new THREE.Vector3(x, eye, y);
+    this.flyTo(pos, pos.clone().add(dir.multiplyScalar(4)), 62, 1000);
+    this.onView?.(null);
+    return true;
+  }
+
+  /**
+   * Image du modèle depuis une vue nommée, au format d'un rendu (comparaison rendu / modèle).
+   * Rendu hors écran à taille fixe, la vue courante est restaurée ensuite.
+   */
+  snapshot(viewId: string, width: number, height: number): string {
+    const v = this.view(viewId); if (!v) return '';
+    const cam = this.camera.clone();
+    cam.clearViewOffset(); cam.aspect = width / height; cam.fov = v.fov;
+    cam.position.set(v.pos[0], v.pos[2], v.pos[1]); cam.lookAt(v.target[0], v.target[2], v.target[1]); cam.updateProjectionMatrix();
+    const prevOv = this.overview; this.overview = v.pos[2] > 4.2; this.applyOverviewState();
+    const size = this.renderer.getSize(new THREE.Vector2()); const pr = this.renderer.getPixelRatio();
+    this.renderer.setPixelRatio(1); this.renderer.setSize(width, height, false); this.composer.setPixelRatio(1); this.composer.setSize(width, height);
+    const pass = this.composer.passes[0] as RenderPass; const prevCam = pass.camera; pass.camera = cam;
+    this.composer.render();
+    const url = this.renderer.domElement.toDataURL('image/jpeg', 0.9);
+    pass.camera = prevCam;
+    this.renderer.setPixelRatio(pr); this.composer.setPixelRatio(pr); this.renderer.setSize(size.x, size.y, false); this.composer.setSize(size.x, size.y);
+    this.overview = prevOv; this.applyOverviewState();
+    return url;
+  }
+
   flyTo(pos: THREE.Vector3, target: THREE.Vector3, fov = this.camera.fov, dur = 1200) {
     const fromT = this.overview ? this.controls.target.clone() : this.camera.position.clone().add(this.camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(pos.distanceTo(target)));
     this.anim = { from: [this.camera.position.clone(), fromT], to: [pos, target], fov: [this.camera.fov, fov], t0: performance.now(), dur, done: () => this.settle(pos, target) };
@@ -255,7 +319,26 @@ export class Tour {
   private resize() {
     const w = this.container.clientWidth || 1; const h = this.container.clientHeight || 1;
     this.renderer.setSize(w, h); this.composer.setSize(w, h);
-    this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
+    this.applyProjection(w, h);
+  }
+
+  /** Centre l'image dans la partie visible quand un panneau couvre la droite de l'écran. */
+  private applyProjection(w: number, h: number) {
+    const inset = Math.min(this.insetRight, w * 0.6);
+    if (inset > 0) {
+      const full = w + inset;
+      this.camera.aspect = full / h;
+      this.camera.setViewOffset(full, h, inset, 0, w, h);
+    } else {
+      this.camera.clearViewOffset();
+      this.camera.aspect = w / h;
+    }
+    this.camera.updateProjectionMatrix();
+  }
+
+  setInsetRight(px: number) {
+    if (Math.abs(px - this.insetRight) < 1) return;
+    this.insetRight = px; this.resize();
   }
 
   private lastEmit = 0;

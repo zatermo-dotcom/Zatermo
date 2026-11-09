@@ -1,19 +1,28 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, type MouseEvent } from 'react';
 import type { ProjectData } from '../types';
 import type { CamState } from '../engine/Tour';
 import { resolveTables } from '../engine/furniture';
 
-interface Props { data: ProjectData; layout: string; cam?: CamState; activeView: string | null; onZone: (camera: string) => void; onView: (id: string) => void }
+interface Props { data: ProjectData; layout: string; cam?: CamState; activeView: string | null; onZone: (camera: string) => void; onView: (id: string) => void; onMove?: (x: number, y: number) => void }
 
 /** Plan interactif généré depuis geometry.json / furniture.json (mêmes données que le modèle 3D). */
-export function PlanView({ data, layout, cam, activeView, onZone, onView }: Props) {
+export function PlanView({ data, layout, cam, activeView, onZone, onView, onMove }: Props) {
+  // un clic sur une zone est différé pour laisser la place au double-clic (déplacement au point)
+  const timer = useRef<number | undefined>(undefined);
+  const zoneClick = (camera: string) => { window.clearTimeout(timer.current); timer.current = window.setTimeout(() => onZone(camera), 260); };
+  const dbl = (e: MouseEvent<SVGSVGElement>) => {
+    window.clearTimeout(timer.current);
+    const svg = e.currentTarget; const m = svg.getScreenCTM(); if (!m || !onMove) return;
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+    onMove(p.x, p.y);
+  };
   const [hover, setHover] = useState<string | null>(null);
   const g = data.geometry; const f = data.furniture;
   const pts = g.outline.points.map((p) => p.join(',')).join(' ');
   const tables = useMemo(() => resolveTables(f, layout), [f, layout]);
   const t = g.wallThickness.value;
   return (
-    <svg className="plan" viewBox={`${-0.9} ${-0.9} ${20.1} ${15.0}`} role="img" aria-label="Plan interactif du restaurant">
+    <svg onDoubleClick={dbl} className="plan" viewBox={`${-0.9} ${-0.9} ${20.1} ${15.0}`} role="img" aria-label="Plan interactif du restaurant">
       <defs>
         <pattern id="hatch" width="0.2" height="0.2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line x1="0" y1="0" x2="0" y2="0.2" stroke="#8a7a62" strokeWidth="0.04" />
@@ -58,7 +67,7 @@ export function PlanView({ data, layout, cam, activeView, onZone, onView }: Prop
         <polygon key={z.id} points={z.polygon.map((p) => p.join(',')).join(' ')}
           className={`zone ${hover === z.id ? 'hover' : ''}`}
           onMouseEnter={() => setHover(z.id)} onMouseLeave={() => setHover(null)}
-          onClick={() => onZone(z.camera)} tabIndex={0} role="button" aria-label={`Aller à : ${z.label}`}
+          onClick={() => zoneClick(z.camera)} tabIndex={0} role="button" aria-label={`Aller à : ${z.label}`}
           onKeyDown={(e) => { if (e.key === 'Enter') onZone(z.camera); }}>
           <title>{z.label}</title>
         </polygon>

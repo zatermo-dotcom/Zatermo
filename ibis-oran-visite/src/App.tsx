@@ -5,9 +5,11 @@ import { Tour, type CamState, type ModelStats } from './engine/Tour';
 import { polygonArea } from './engine/util';
 import { PlanView } from './components/PlanView';
 import { Gallery, SettingsPanel, SourcesPanel } from './components/Panels';
+import { WallsPanel } from './components/WallsPanel';
+import { Compare } from './components/Compare';
 
-type Tab = 'vues' | 'plan' | 'rendus' | 'sources' | 'reglages';
-interface Lightbox { file: string; title: string; page: number; note?: string; camera?: string; list?: RenderItem[]; index?: number }
+type Tab = 'vues' | 'plan' | 'murs' | 'rendus' | 'sources' | 'reglages';
+interface Lightbox { file: string; title: string; page: number; note?: string; camera?: string; face?: string; list?: RenderItem[]; index?: number; model?: string }
 
 const DEFAULT_OPTIONS: Options = { layout: 'amenagement-02', floor: 'sol-A', lustre: 'abat-jour', showCeiling: true, showFurniture: true, quality: 'standard', bloom: true };
 
@@ -15,6 +17,7 @@ declare global { interface Window { __tour?: Tour } }
 
 export default function App() {
   const host = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
   const tour = useRef<Tour | undefined>(undefined);
   const [data, setData] = useState<ProjectData>();
   const [error, setError] = useState<string>();
@@ -83,6 +86,15 @@ export default function App() {
     document.addEventListener('fullscreenchange', f); return () => document.removeEventListener('fullscreenchange', f);
   }, []);
 
+  // la vue 3D se centre dans la partie non couverte par le panneau (écrans larges)
+  useEffect(() => {
+    const el = panelRef.current; const t = tour.current; if (!t) return;
+    if (!el || presentation || window.innerWidth <= 760) { t.setInsetRight(0); return; }
+    const upd = () => t.setInsetRight(Math.max(0, window.innerWidth - el.getBoundingClientRect().left));
+    upd(); const ro = new ResizeObserver(upd); ro.observe(el); window.addEventListener('resize', upd);
+    return () => { ro.disconnect(); window.removeEventListener('resize', upd); };
+  }, [panelOpen, presentation, data, stats]);
+
   const area = useMemo(() => data ? polygonArea(data.geometry.outline.points) - data.geometry.poteau.w * data.geometry.poteau.d : 0, [data]);
   const view = data?.cameras.views.find((v) => v.id === activeView);
   const related = useMemo(() => (data && activeView ? data.renders.items.filter((r) => r.camera === activeView) : []), [data, activeView]);
@@ -90,6 +102,15 @@ export default function App() {
   const openRender = (r: RenderItem, list?: RenderItem[]) => {
     const l = list ?? data?.renders.items ?? [];
     setLightbox({ file: r.file, title: r.title, page: r.page, note: r.note, camera: r.camera, list: l, index: l.findIndex((x) => x.id === r.id) });
+  };
+  const compare = () => {
+    const lb = lightbox; const t = tour.current; if (!lb?.camera || !t) return;
+    const img = new Image();
+    img.onload = () => {
+      const w = 1280; const h = Math.round((w * img.naturalHeight) / img.naturalWidth);
+      setLightbox({ ...lb, model: t.snapshot(lb.camera!, w, h) });
+    };
+    img.src = `${import.meta.env.BASE_URL}${lb.file}`;
   };
   const stepLightbox = (d: number) => {
     if (!lightbox?.list || lightbox.index === undefined) return;
@@ -123,17 +144,17 @@ export default function App() {
       </div>
 
       {data && !presentation && panelOpen && (
-        <aside className="panel">
+        <aside className="panel" ref={panelRef}>
           <nav className="tabs" role="tablist">
-            {([['plan', 'Plan'], ['vues', 'Vues'], ['rendus', 'Rendus'], ['sources', 'Sources'], ['reglages', 'Réglages']] as [Tab, string][]).map(([k, l]) => (
+            {([['plan', 'Plan'], ['vues', 'Vues'], ['murs', 'Murs'], ['rendus', 'Rendus'], ['sources', 'Sources'], ['reglages', 'Réglages']] as [Tab, string][]).map(([k, l]) => (
               <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
             ))}
           </nav>
           <div className="panel-body">
             {tab === 'plan' && (
               <>
-                <p className="hint">Cliquez une zone ou un point de vue pour y déplacer la caméra. Le plan est tracé à partir des mêmes données que le modèle.</p>
-                <PlanView data={data} layout={options.layout} cam={cam} activeView={activeView} onZone={go} onView={go} />
+                <p className="hint">Clic sur une zone ou un point de vue : la caméra s'y rend. Double-clic sur le plan : déplacement à ce point. Le plan est tracé à partir des mêmes données que le modèle.</p>
+                <PlanView data={data} layout={options.layout} cam={cam} activeView={activeView} onZone={go} onView={go} onMove={(x, y) => { if (!tour.current?.moveToPlan(x, y)) flash('Point hors de la salle'); }} />
                 <div className="legend"><span className="lg wall" />murs <span className="lg win" />baies <span className="lg ban" />banquettes <span className="lg buf" />buffets <span className="lg frame" />cadres sol/plafond</div>
               </>
             )}
@@ -147,6 +168,9 @@ export default function App() {
                 ))}
               </div>
             ))}
+            {tab === 'murs' && <WallsPanel data={data}
+              onFace={(id) => { tour.current?.goToFace(id); if (window.innerWidth <= 760) setPanelOpen(false); }}
+              onSheet={(id) => { const f = data.walls.faces.find((x) => x.id === id)!; setLightbox({ file: `plans/elevations/${id}.jpg`, title: `Élévation ${id} — ${f.label}`, page: f.page, face: id, note: `Statut : ${f.status}. Cadres hors tout : ${f.frames.join(' / ') || 'aucun'} mm.` }); }} />}
             {tab === 'rendus' && <Gallery data={data} onOpen={(r) => openRender(r)} onOpenPlan={(file, title, page) => setLightbox({ file, title, page })} />}
             {tab === 'sources' && <SourcesPanel data={data} area={area} />}
             {tab === 'reglages' && <SettingsPanel data={data} options={options} stats={stats} busy={busy} onChange={change} onReload={reload} onExport={exportGLB} onCopyView={copyView} />}
@@ -204,18 +228,24 @@ export default function App() {
         <div className="lightbox" role="dialog" aria-modal="true" aria-label={lightbox.title} onKeyDown={(e) => { if (e.key === 'Escape') setLightbox(null); }}>
           <div className="lb-head">
             <div>
-              <span className="badge st-ref">Image de référence du PDF — p.{lightbox.page}</span>
+              <span className="badge st-ref">{lightbox.face ? 'Planche cotée' : 'Image de référence'} du PDF — p.{lightbox.page}</span>
               <h3>{lightbox.title}</h3>
               {lightbox.note && <p className="note">{lightbox.note}</p>}
             </div>
             <div className="row">
+              {lightbox.camera && !lightbox.face && (lightbox.model
+                ? <button className="btn" onClick={() => setLightbox({ ...lightbox, model: undefined })}>Rendu seul</button>
+                : <button className="btn" onClick={compare}>Comparer avec le modèle</button>)}
               {lightbox.camera && <button className="btn primary" onClick={() => go(lightbox.camera!)}>Voir la position dans le modèle 3D</button>}
+              {lightbox.face && <button className="btn primary" onClick={() => { tour.current?.goToFace(lightbox.face!); setLightbox(null); }}>Vue frontale dans le modèle 3D</button>}
               <button className="btn" onClick={() => setLightbox(null)} autoFocus>Retour au modèle</button>
             </div>
           </div>
           <div className="lb-img">
             {lightbox.list && lightbox.list.length > 1 && <button className="lb-nav" onClick={() => stepLightbox(-1)} aria-label="Précédent">‹</button>}
-            <img src={`${base}${lightbox.file}`} alt={lightbox.title} />
+            {lightbox.model
+              ? <Compare render={`${base}${lightbox.file}`} model={lightbox.model} title={lightbox.title} />
+              : <img src={`${base}${lightbox.file}`} alt={lightbox.title} />}
             {lightbox.list && lightbox.list.length > 1 && <button className="lb-nav" onClick={() => stepLightbox(1)} aria-label="Suivant">›</button>}
           </div>
           <p className="hint center">Rendu fixe fourni dans le dossier : il n'est ni un panorama ni une vue calculée du modèle ; certaines images montrent des variantes non retenues.</p>

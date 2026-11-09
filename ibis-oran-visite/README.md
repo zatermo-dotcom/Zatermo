@@ -46,7 +46,8 @@ Paramètres d'URL utiles : `?vue=buffet-central` (vue de départ, identifiant de
 ```bash
 npm run build
 npm run check        # ouvre la visite dans Chromium (Playwright), contrôle quantités,
-                     # vues, plan, rendus, double-clic au sol, variantes, mobile ;
+                     # vues, 26 vues frontales, plan (clic et double-clic), rendus,
+                     # comparaison, double-clic au sol, variantes, mobile ;
                      # captures dans docs/captures/
 npm run export:glb   # écrit model/restaurant-ibis-oran_amenagement-02_sol-A_abat-jour.glb
 npm run export:glb -- amenagement-01 sol-B vasque   # export d'une variante
@@ -65,11 +66,14 @@ Le bouton « Exporter le GLB » de l'onglet Réglages fait le même export depui
 | Se déplacer à un point | double-clic au sol | double-tap au sol |
 | Avancer / reculer / tourner | molette, flèches, Z Q S D | pavé ▲ ◀ ▼ ▶ |
 | Vue générale | molette = zoom, clic droit = déplacer | pincer, deux doigts |
-| Changer d'espace | barre de vues en bas, onglet **Vues**, ou clic sur le **Plan** | idem |
-| Rendus de référence | vignettes en bas à gauche ou onglet **Rendus** → « Voir la position dans le modèle 3D » / « Retour au modèle » | idem |
+| Changer d'espace | barre de vues en bas, onglet **Vues**, ou clic sur une zone du **Plan** | idem |
+| Aller à un point précis | double-clic sur le **Plan** | double-tap sur le plan |
+| Rendus de référence | vignettes en bas à gauche ou onglet **Rendus** → « Comparer avec le modèle » (curseur rendu / 3D), « Voir la position dans le modèle 3D », « Retour au modèle » | idem |
+| Contrôle des murs | onglet **Murs** → « Vue 3D » (caméra face à la face) et « Élévation p.xx » (planche cotée du PDF) | idem |
 | Présentation client | bouton **Plein écran** (masque les panneaux) | idem |
 
-Onglets : **Plan** (zones et points de vue cliquables, position de la caméra) · **Vues** ·
+Onglets : **Plan** (zones et points de vue cliquables, double-clic pour se déplacer, position de la caméra) · **Vues** ·
+**Murs** (26 faces : largeur, cadres, statut, vue frontale 3D et planche d'élévation p.41-66) ·
 **Rendus** (33 images extraites du PDF + planches techniques) · **Sources** (sources et
 hypothèses avec page et statut, et table de correspondance des 109 pages) · **Réglages**
 (variantes, contrôle des quantités, export GLB, rechargement des données).
@@ -126,7 +130,7 @@ src/engine/
   Tour.ts          rendu, navigation, vols de caméra, export GLB
 src/components/    plan interactif SVG, galerie de rendus, sources, réglages
 public/renders/    rendus extraits du PDF (pages 1-23, 28, 39, 102-106)
-public/plans/      planches techniques de référence
+public/plans/      planches techniques de référence ; elevations/ = 26 élévations M01-C04 (p.41-66)
 docs/              correspondance des pages, sources et hypothèses, captures de contrôle
 model/             export GLB de la version principale
 ```
