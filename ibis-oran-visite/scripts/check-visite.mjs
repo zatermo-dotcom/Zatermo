@@ -121,6 +121,44 @@ await page.waitForFunction(() => !window.__tour.animating, null, { timeout: 3000
 const pm = await page.evaluate(() => { const p = window.__tour.camera.position; return [p.x, p.z]; });
 if (Math.hypot(pm[0] - 8.6, pm[1] - 10.5) > 0.25) fail(`double-clic plan → ${pm}`); else console.log('double-clic plan → alcôve OK');
 
+// Contrôle d'implantation : aucun conflit dans la version principale
+const iss = await page.evaluate(() => window.__tour.layoutIssues());
+const conflicts = iss.filter((i) => i.level === 'conflit');
+if (conflicts.length) fail(`conflits d'implantation : ${conflicts.map((i) => i.text).join(' ; ')}`);
+else console.log(`implantation : 0 conflit, ${iss.length} point(s) d'attention`);
+
+// Édition sur le plan : glisser T11, pivoter, mesurer, annuler
+await page.getByRole('tab', { name: 'Plan' }).click();
+await page.getByRole('button', { name: 'Éditer le mobilier' }).click();
+const ebox = await page.locator('svg.plan').boundingBox();
+const ePx = (x, y) => [ebox.x + ((x + 0.9) / 20.1) * ebox.width, ebox.y + ((y + 0.9) / 15.0) * ebox.height];
+const [sx, sy] = ePx(9.40, 7.40); const [tx, ty] = ePx(9.00, 7.60);
+await page.mouse.move(sx, sy); await page.mouse.down(); await page.mouse.move(tx, ty, { steps: 6 }); await page.mouse.up();
+await page.waitForTimeout(400);
+const t11 = await page.evaluate(() => { const o = window.__tour.scene.getObjectByName('T11'); return [o.position.x, o.position.z]; });
+if (Math.hypot(t11[0] - 9.0, t11[1] - 7.6) > 0.08) fail(`glisser T11 → ${t11}`); else console.log('glisser T11 sur le plan → modèle 3D mis à jour OK');
+await page.getByRole('button', { name: /Pivoter 90/ }).click();
+await page.waitForTimeout(300);
+const rot = await page.evaluate(() => window.__tour.scene.getObjectByName('T11').rotation.y);
+if (Math.abs(Math.abs(rot) - Math.PI / 2) > 0.01) fail('pivoter T11'); else console.log('pivoter T11 OK');
+await page.screenshot({ path: `${out}ui-edition.jpg`, quality: 82 });
+await page.getByRole('button', { name: 'Annuler les modifications' }).click();
+await page.waitForTimeout(300);
+const back = await page.evaluate(() => { const o = window.__tour.scene.getObjectByName('T11'); return [o.position.x, o.position.z, o.rotation.y]; });
+if (Math.hypot(back[0] - 9.4, back[1] - 7.4) > 0.01 || Math.abs(back[2]) > 0.01) fail('annuler'); else console.log('annuler les modifications OK');
+await page.getByRole('button', { name: 'Mesurer' }).click();
+await page.waitForTimeout(200);
+// conversion plan → écran par la matrice de l'SVG (exacte, bordure comprise)
+const [[ax, ay], [bx, by]] = await page.evaluate(() => {
+  const svg = document.querySelector('svg.plan'); const m = svg.getScreenCTM();
+  return [[2.0, 13.5], [16.3, 13.5]].map(([x, y]) => { const p = new DOMPoint(x, y).matrixTransform(m); return [p.x, p.y]; });
+});
+await page.mouse.click(ax, ay); await page.mouse.click(bx, by);
+const mtxt = await page.locator('svg.plan .measure text').textContent();
+if (!/^14,(2[8-9]|3[0-2]) m$/.test(mtxt ?? '')) fail(`mesure : ${mtxt}`); else console.log(`mesure en plan OK (${mtxt})`);
+await page.screenshot({ path: `${out}ui-mesure.jpg`, quality: 82 });
+await page.getByRole('button', { name: 'Naviguer' }).click();
+
 // Variantes
 for (const o of [{ layout: 'amenagement-01' }, { floor: 'sol-B' }, { lustre: 'vasque' }, { layout: 'amenagement-02', floor: 'sol-A', lustre: 'abat-jour', quality: 'elevee' }]) {
   await page.evaluate((x) => window.__tour.setOptions(x), o);

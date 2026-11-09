@@ -3,7 +3,10 @@ import type { Options, ProjectData, RenderItem } from './types';
 import { loadProjectData } from './data';
 import { Tour, type CamState, type ModelStats } from './engine/Tour';
 import { polygonArea } from './engine/util';
-import { PlanView } from './components/PlanView';
+import { PlanView, type PlanMode } from './components/PlanView';
+import { checkLayout } from './engine/layoutCheck';
+import { downloadJSON, editableLayout, moveIlot, moveTable, rotateTable } from './engine/layoutEdit';
+import { resolveTables } from './engine/furniture';
 import { Gallery, SettingsPanel, SourcesPanel } from './components/Panels';
 import { WallsPanel } from './components/WallsPanel';
 import { Compare } from './components/Compare';
@@ -35,10 +38,16 @@ export default function App() {
   const [toast, setToast] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [help, setHelp] = useState(false);
+  const [planMode, setPlanMode] = useState<PlanMode>('nav');
+  const [selected, setSelected] = useState<string | null>(null);
+  const [passage, setPassage] = useState(0.6);
+  const [showIssues, setShowIssues] = useState(true);
+  const [edited, setEdited] = useState(false);
+  const original = useRef<ProjectData['furniture'] | undefined>(undefined);
 
   const flash = (m: string) => { setToast(m); window.setTimeout(() => setToast(undefined), 2600); };
 
-  useEffect(() => { loadProjectData().then(setData).catch((e: Error) => setError(e.message)); }, []);
+  useEffect(() => { loadProjectData().then((d) => { original.current = structuredClone(d.furniture); setData(d); }).catch((e: Error) => setError(e.message)); }, []);
 
   useEffect(() => {
     if (!data || !host.current || tour.current) return;
@@ -60,7 +69,7 @@ export default function App() {
 
   const reload = async () => {
     setBusy(true);
-    try { const d = await loadProjectData(); setData(d); tour.current?.rebuild(d, options); setStats(tour.current?.stats); flash('Données rechargées'); }
+    try { const d = await loadProjectData(); original.current = structuredClone(d.furniture); setEdited(false); setData(d); tour.current?.rebuild(d, options); setStats(tour.current?.stats); flash('Données rechargées'); }
     catch (e) { flash((e as Error).message); } finally { setBusy(false); }
   };
   const exportGLB = async () => {
@@ -94,6 +103,22 @@ export default function App() {
     upd(); const ro = new ResizeObserver(upd); ro.observe(el); window.addEventListener('resize', upd);
     return () => { ro.disconnect(); window.removeEventListener('resize', upd); };
   }, [panelOpen, presentation, data, stats]);
+
+  // --- édition de l'implantation sur le plan ---
+  const issues = useMemo(() => (data ? checkLayout(data.furniture, data.geometry, options.layout, passage) : []), [data, options.layout, passage]);
+  const setFurniture = (f: ProjectData['furniture'], rebuild3D: boolean) => {
+    if (!data) return; setData({ ...data, furniture: f }); setEdited(true);
+    if (rebuild3D) { tour.current?.updateFurniture(f); setStats(tour.current?.stats); }
+  };
+  const pending = useRef<ProjectData['furniture'] | undefined>(undefined);
+  const onDrag = (id: string, x: number, y: number) => {
+    if (!data) return;
+    const f = id === 'ILOT' ? moveIlot(data.furniture, x, y) : moveTable(data.furniture, options.layout, id, x, y);
+    pending.current = f; setData({ ...data, furniture: f }); setEdited(true);
+  };
+  const onDragEnd = () => { if (pending.current) { tour.current?.updateFurniture(pending.current); setStats(tour.current?.stats); pending.current = undefined; } };
+  const selTable = data && selected && selected !== 'ILOT' ? resolveTables(data.furniture, options.layout).find((t) => t.id === selected) : undefined;
+  const editKey = data ? editableLayout(data.furniture, options.layout) : '';
 
   const area = useMemo(() => data ? polygonArea(data.geometry.outline.points) - data.geometry.poteau.w * data.geometry.poteau.d : 0, [data]);
   const view = data?.cameras.views.find((v) => v.id === activeView);
@@ -153,9 +178,50 @@ export default function App() {
           <div className="panel-body">
             {tab === 'plan' && (
               <>
-                <p className="hint">Clic sur une zone ou un point de vue : la caméra s'y rend. Double-clic sur le plan : déplacement à ce point. Le plan est tracé à partir des mêmes données que le modèle.</p>
-                <PlanView data={data} layout={options.layout} cam={cam} activeView={activeView} onZone={go} onView={go} onMove={(x, y) => { if (!tour.current?.moveToPlan(x, y)) flash('Point hors de la salle'); }} />
+                <div className="seg" role="group" aria-label="Mode du plan">
+                  {([['nav', 'Naviguer'], ['edit', 'Éditer le mobilier'], ['measure', 'Mesurer']] as [PlanMode, string][]).map(([k, l]) => (
+                    <button key={k} className={planMode === k ? 'on' : ''} onClick={() => { setPlanMode(k); setSelected(null); }}>{l}</button>
+                  ))}
+                </div>
+                <p className="hint">
+                  {planMode === 'nav' && 'Clic sur une zone ou un point de vue : la caméra s\'y rend. Double-clic : déplacement à ce point. Le plan est tracé à partir des mêmes données que le modèle.'}
+                  {planMode === 'edit' && `Glisser une table (avec ses chaises) ou l'îlot ; pas de 5 cm. Le modèle 3D se met à jour au relâchement. Implantation modifiée : ${data.furniture.layouts[editKey]?.label ?? editKey}.`}
+                  {planMode === 'measure' && 'Cliquer deux points : distance en plan (mètres). Un troisième clic recommence.'}
+                </p>
+                <PlanView data={data} layout={options.layout} cam={cam} activeView={activeView} mode={planMode} issues={showIssues ? issues : []} selected={selected}
+                  onZone={go} onView={go} onSelect={setSelected} onDrag={onDrag} onDragEnd={onDragEnd}
+                  onMove={(x, y) => { if (!tour.current?.moveToPlan(x, y)) flash('Point hors de la salle'); }} />
                 <div className="legend"><span className="lg wall" />murs <span className="lg win" />baies <span className="lg ban" />banquettes <span className="lg buf" />buffets <span className="lg frame" />cadres sol/plafond</div>
+                {planMode === 'edit' && (
+                  <div className="editbox">
+                    {selected ? (
+                      <>
+                        <b>{selected === 'ILOT' ? 'Îlot central' : `Table ${selected} (${selTable?.type === 'rect' ? 'rectangulaire' : 'carrée'})`}</b>{' '}
+                        X <input type="number" step={0.05} value={selected === 'ILOT' ? data.furniture.ilot.x : selTable?.x ?? 0}
+                          onChange={(e) => setFurniture(selected === 'ILOT' ? moveIlot(data.furniture, Number(e.target.value), data.furniture.ilot.y) : moveTable(data.furniture, options.layout, selected, Number(e.target.value), selTable!.y), true)} />{' '}
+                        Y <input type="number" step={0.05} value={selected === 'ILOT' ? data.furniture.ilot.y : selTable?.y ?? 0}
+                          onChange={(e) => setFurniture(selected === 'ILOT' ? moveIlot(data.furniture, data.furniture.ilot.x, Number(e.target.value)) : moveTable(data.furniture, options.layout, selected, selTable!.x, Number(e.target.value)), true)} />{' '}
+                        {selTable && <button className="mini" onClick={() => setFurniture(rotateTable(data.furniture, options.layout, selected), true)}>Pivoter 90° ({selTable.rot}°)</button>}
+                      </>
+                    ) : 'Sélectionner une table ou l\'îlot sur le plan.'}
+                    <div className="row" style={{ marginTop: 8 }}>
+                      <button className="btn" onClick={() => downloadJSON('furniture.json', data.furniture)}>Télécharger furniture.json</button>
+                      <button className="btn" disabled={!edited} onClick={() => { if (original.current) { setFurniture(structuredClone(original.current), true); setEdited(false); setSelected(null); } }}>Annuler les modifications</button>
+                    </div>
+                    <p className="hint">Remplacer <code>public/data/furniture.json</code> par le fichier téléchargé pour conserver les corrections.</p>
+                  </div>
+                )}
+                <h4>Contrôle d'implantation ({issues.filter((i) => i.level === 'conflit').length} conflit(s), {issues.filter((i) => i.level === 'passage').length} point(s) d'attention)</h4>
+                <p className="hint">Mesures en plan indicatives (emprises des gabarits du dossier) : ce n'est pas une vérification réglementaire des dégagements.</p>
+                <div className="toggles">
+                  <label><input type="checkbox" checked={showIssues} onChange={(e) => setShowIssues(e.target.checked)} /> Afficher sur le plan</label>
+                  <label>Seuil de passage{' '}
+                    <select value={passage} onChange={(e) => setPassage(Number(e.target.value))}>
+                      {[0.6, 0.9, 1.2, 1.4].map((v) => <option key={v} value={v}>{v.toFixed(2).replace('.', ',')} m</option>)}
+                    </select>
+                  </label>
+                </div>
+                <ul className="issues">{issues.map((i, k) => <li key={k} className={i.level}>{i.text}</li>)}</ul>
               </>
             )}
             {tab === 'vues' && groups.map((gr) => (
@@ -173,7 +239,7 @@ export default function App() {
               onSheet={(id) => { const f = data.walls.faces.find((x) => x.id === id)!; setLightbox({ file: `plans/elevations/${id}.jpg`, title: `Élévation ${id} — ${f.label}`, page: f.page, face: id, note: `Statut : ${f.status}. Cadres hors tout : ${f.frames.join(' / ') || 'aucun'} mm.` }); }} />}
             {tab === 'rendus' && <Gallery data={data} onOpen={(r) => openRender(r)} onOpenPlan={(file, title, page) => setLightbox({ file, title, page })} />}
             {tab === 'sources' && <SourcesPanel data={data} area={area} />}
-            {tab === 'reglages' && <SettingsPanel data={data} options={options} stats={stats} busy={busy} onChange={change} onReload={reload} onExport={exportGLB} onCopyView={copyView} />}
+            {tab === 'reglages' && <SettingsPanel data={data} options={options} stats={stats} busy={busy} conflicts={issues.filter((i) => i.level === 'conflit').length} onChange={change} onReload={reload} onExport={exportGLB} onCopyView={copyView} />}
           </div>
         </aside>
       )}

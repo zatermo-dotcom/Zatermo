@@ -129,3 +129,25 @@ table.faces td { vertical-align: middle; }
 .cmp-tag.left { left: 8px; } .cmp-tag.right { right: 8px; }
 .compare input[type=range] { width: min(480px, 90%); accent-color: var(--gold); }
 @media (max-width: 760px) { .compare { max-width: calc(100% - 70px); } }
+
+/* --- itération 3 : édition, mesure, contrôle --- */
+.plan.mode-edit, .plan.mode-measure { cursor: crosshair; }
+.plan .draggable { cursor: grab; }
+.plan .tid { font-size: .3px; text-anchor: middle; fill: #5b4c3d; pointer-events: none; }
+.plan .sel { stroke: #1f78c8; stroke-width: .04; }
+.plan .issue { fill-opacity: .25; stroke-width: .05; pointer-events: auto; }
+.plan .issue.conflit { fill: #c0392b; stroke: #c0392b; }
+.plan .issue.passage { fill: #e08a1e; stroke: #e08a1e; }
+.plan .measure line { stroke: #1f78c8; stroke-width: .05; stroke-dasharray: .15 .08; }
+.plan .measure text { font-size: .45px; fill: #1f78c8; text-anchor: middle; font-weight: 700; paint-order: stroke; stroke: #fff; stroke-width: .12; }
+.plan .mpt { fill: #1f78c8; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin: 4px 0 8px; }
+.seg button { background: #fff; border: 0; padding: 6px 10px; font-size: 12px; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button.on { background: var(--dark); color: var(--cream); }
+.editbox { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin: 8px 0; font-size: 12px; }
+.editbox input { width: 72px; padding: 3px 5px; border: 1px solid var(--line); border-radius: 4px; font: inherit; }
+.issues { list-style: none; padding: 0; margin: 6px 0; font-size: 12px; }
+.issues li { padding: 4px 0 4px 16px; border-bottom: 1px solid var(--line); position: relative; }
+.issues li::before { content: ''; position: absolute; left: 2px; top: 9px; width: 8px; height: 8px; border-radius: 50%; }
+.issues li.conflit::before { background: #c0392b; } .issues li.passage::before { background: #e08a1e; }

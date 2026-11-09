@@ -14,6 +14,7 @@ import { buildCeiling } from './ceiling';
 import { buildBanquettes, buildBuffets, buildIlot, buildTables } from './furniture';
 import { buildLighting } from './lighting';
 import { pointInPolygon } from './util';
+import { checkLayout } from './layoutCheck';
 
 export interface CamState { x: number; y: number; h: number; yaw: number; overview: boolean }
 export interface ModelStats {
@@ -34,6 +35,7 @@ export class Tour {
   private ceiling?: THREE.Group;
   private furniture = new THREE.Group();
   private floor?: THREE.Mesh;
+  private lib?: ReturnType<typeof buildMaterials>;
   private anim?: { from: [THREE.Vector3, THREE.Vector3]; to: [THREE.Vector3, THREE.Vector3]; fov: [number, number]; t0: number; dur: number; done?: () => void };
   private overview = false;
   private overviewLights = new THREE.Group();
@@ -95,7 +97,7 @@ export class Tour {
     const d = this.data; const o = this.options;
     this.model.traverse((x) => { if ((x as THREE.Mesh).geometry) (x as THREE.Mesh).geometry.dispose(); });
     this.model.clear();
-    const lib = buildMaterials(d.materials);
+    const lib = buildMaterials(d.materials); this.lib = lib;
     const A = d.lighting.ambiance;
     this.model.add(new THREE.AmbientLight('#ffd9ad', A.ambient));
     const hemi = new THREE.HemisphereLight(A.hemiSky, A.hemiGround, A.hemi); hemi.name = 'Hemi'; this.model.add(hemi);
@@ -111,15 +113,25 @@ export class Tour {
     const lights = buildLighting(d.geometry, d.ceiling, d.lighting, lib, o.lustre, o.quality);
     this.model.add(lights);
 
+    this.buildFurniture();
+    this.applyOverviewState(true);
+  }
+
+  /** (Re)construit uniquement le mobilier et recalcule les quantités. */
+  private buildFurniture() {
+    const d = this.data; const lib = this.lib!;
+    if (this.furniture.parent) {
+      this.furniture.traverse((x) => { if ((x as THREE.Mesh).geometry) (x as THREE.Mesh).geometry.dispose(); });
+      this.model.remove(this.furniture);
+    }
     this.furniture = new THREE.Group(); this.furniture.name = 'Mobilier';
-    const tables = buildTables(d.furniture, lib, o.layout);
+    const tables = buildTables(d.furniture, lib, this.options.layout);
     const banq = buildBanquettes(d.furniture, lib);
     const buf = buildBuffets(d.furniture, lib);
     const ilot = buildIlot(d.furniture, lib);
     this.furniture.add(tables, banq, buf, ilot);
-    this.furniture.visible = o.showFurniture;
+    this.furniture.visible = this.options.showFurniture;
     this.model.add(this.furniture);
-
     const tu = tables.userData as { tables: number; rect: number; carree: number; chairs: Record<string, number> };
     this.stats = {
       ...tu,
@@ -128,8 +140,10 @@ export class Tour {
       lustres: d.ceiling.rosaces.items.length, appliques: d.lighting.applique.items.length, spots: d.lighting.spot.items.length,
       faces: d.walls.faces.length, gorges: d.ceiling.gorges.length,
     };
-    this.applyOverviewState(true);
   }
+
+  /** Mise à jour du mobilier édité sur le plan, sans reconstruire la pièce. */
+  updateFurniture(f: ProjectData['furniture']) { this.data = { ...this.data, furniture: f }; this.buildFurniture(); }
 
   setOptions(o: Partial<Options>) {
     const prev = this.options; this.options = { ...prev, ...o };
@@ -141,6 +155,9 @@ export class Tour {
   }
 
   get animating() { return !!this.anim; }
+
+  /** Contrôle d'implantation du mobilier courant (indicatif). */
+  layoutIssues(passage = 0.6) { return checkLayout(this.data.furniture, this.data.geometry, this.options.layout, passage); }
 
   view(id: string): CameraView | undefined { return this.data.cameras.views.find((v) => v.id === id); }
 

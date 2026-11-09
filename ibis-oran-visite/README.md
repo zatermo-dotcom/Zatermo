@@ -47,7 +47,8 @@ Paramètres d'URL utiles : `?vue=buffet-central` (vue de départ, identifiant de
 npm run build
 npm run check        # ouvre la visite dans Chromium (Playwright), contrôle quantités,
                      # vues, 26 vues frontales, plan (clic et double-clic), rendus,
-                     # comparaison, double-clic au sol, variantes, mobile ;
+                     # comparaison, implantation (0 conflit), édition et mesure sur le plan,
+                     # double-clic au sol, variantes, mobile ;
                      # captures dans docs/captures/
 npm run export:glb   # écrit model/restaurant-ibis-oran_amenagement-02_sol-A_abat-jour.glb
 npm run export:glb -- amenagement-01 sol-B vasque   # export d'une variante
@@ -68,15 +69,30 @@ Le bouton « Exporter le GLB » de l'onglet Réglages fait le même export depui
 | Vue générale | molette = zoom, clic droit = déplacer | pincer, deux doigts |
 | Changer d'espace | barre de vues en bas, onglet **Vues**, ou clic sur une zone du **Plan** | idem |
 | Aller à un point précis | double-clic sur le **Plan** | double-tap sur le plan |
+| Corriger l'implantation | **Plan → Éditer le mobilier** : glisser une table (avec ses chaises) ou l'îlot, saisir X / Y, pivoter de 90°, puis « Télécharger furniture.json » | glisser au doigt |
+| Mesurer | **Plan → Mesurer** : deux clics = distance en plan | deux taps |
 | Rendus de référence | vignettes en bas à gauche ou onglet **Rendus** → « Comparer avec le modèle » (curseur rendu / 3D), « Voir la position dans le modèle 3D », « Retour au modèle » | idem |
 | Contrôle des murs | onglet **Murs** → « Vue 3D » (caméra face à la face) et « Élévation p.xx » (planche cotée du PDF) | idem |
 | Présentation client | bouton **Plein écran** (masque les panneaux) | idem |
 
-Onglets : **Plan** (zones et points de vue cliquables, double-clic pour se déplacer, position de la caméra) · **Vues** ·
+Onglets : **Plan** (navigation, édition du mobilier, mesure, contrôle d'implantation) · **Vues** ·
 **Murs** (26 faces : largeur, cadres, statut, vue frontale 3D et planche d'élévation p.41-66) ·
 **Rendus** (33 images extraites du PDF + planches techniques) · **Sources** (sources et
 hypothèses avec page et statut, et table de correspondance des 109 pages) · **Réglages**
 (variantes, contrôle des quantités, export GLB, rechargement des données).
+
+## Contrôle d'implantation
+
+Le plan signale en continu, à partir des gabarits du dossier (`src/engine/layoutCheck.ts`) :
+
+- **conflits** (rouge) : mobilier qui chevauche un autre meuble, dépasse le nu des murs, touche
+  le poteau ou la joue de l'accès, ou empiète sur une bande de 0,90 m devant la porte cuisine ou l'accès ;
+- **points d'attention** (orange) : passage libre entre deux groupes inférieur au seuil choisi
+  (0,60 / 0,90 / 1,20 / 1,40 m) et mobilier placé devant une porte-fenêtre.
+
+La version principale n'a aucun conflit. Il reste 11 points d'attention : B01 et B03 devant PF1 et PF2,
+et des passages de 0,40 à 0,55 m dans les deux travées nord, conséquence de la densité de
+l'Aménagement 02. Ces mesures sont indicatives et ne remplacent pas une vérification réglementaire.
 
 ## Variantes (jamais mélangées dans un même modèle)
 

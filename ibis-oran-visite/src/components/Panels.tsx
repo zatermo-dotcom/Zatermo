@@ -80,10 +80,10 @@ export function SourcesPanel({ data, area }: { data: ProjectData; area: number }
 }
 
 interface SettingsProps {
-  data: ProjectData; options: Options; stats?: ModelStats; busy: boolean;
+  data: ProjectData; options: Options; stats?: ModelStats; busy: boolean; conflicts?: number;
   onChange: (o: Partial<Options>) => void; onReload: () => void; onExport: () => void; onCopyView: () => void;
 }
-export function SettingsPanel({ data, options, stats, busy, onChange, onReload, onExport, onCopyView }: SettingsProps) {
+export function SettingsPanel({ data, options, stats, busy, conflicts = 0, onChange, onReload, onExport, onCopyView }: SettingsProps) {
   const checks = useMemo(() => {
     if (!stats) return [];
     const c = stats.chairs;
@@ -96,8 +96,9 @@ export function SettingsPanel({ data, options, stats, busy, onChange, onReload, 
       ['Îlot – portes', `${stats.ilotPortes}`, stats.ilotPortes === 0],
       ['Lustres / appliques / spots', `${stats.lustres} / ${stats.appliques} / ${stats.spots}`, stats.lustres === 7 && stats.appliques === 19 && stats.spots === 30],
       ['Faces murales / caissons', `${stats.faces} / ${stats.gorges}`, stats.faces === 26 && stats.gorges === 6],
+      ['Conflits d\'implantation', `${conflicts}`, conflicts === 0],
     ] as [string, string, boolean][];
-  }, [stats, options.layout]);
+  }, [stats, options.layout, conflicts]);
   const f = data.furniture; const m = data.materials;
   return (
     <div className="settings">
