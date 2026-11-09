@@ -1,0 +1,38 @@
+{
+  "_doc": "Décor mural V3 (PDF p.39-69). Cadres uniquement en partie haute entre +1,28 et +3,15 ; partie basse lisse (aucun cadre ni baguette) ; cimaise 03 continue à l'axe +1,10. Largeurs hors tout du cadre 01 en mm ; le cadre 02 est en retrait de 70 mm. Normale n = direction de la salle (repère plan X/Y).",
+  "profiles": {
+    "cadre01": { "width": 0.035, "depth": 0.014, "status": "proposé", "pages": [68] },
+    "cadre02": { "width": 0.020, "depth": 0.010, "offset": 0.070, "status": "proposé", "pages": [68] },
+    "cimaise03": { "width": 0.060, "depth": 0.020, "status": "proposé", "pages": [68] },
+    "frameHeight01": 1.87,
+    "frameHeight02": 1.73
+  },
+  "faces": [
+    { "id": "M01", "label": "Salle à manger — mur nord plein", "a": [8.77, 0], "b": [11.45, 0], "n": [0, 1], "frames": [404, 1212, 404], "status": "déduit", "page": 41 },
+    { "id": "M02", "label": "Salle à manger — grand mur est", "a": [11.45, 0], "b": [11.45, 6.15], "n": [-1, 0], "frames": [570, 1710, 570, 1710, 570], "status": "coté", "page": 42 },
+    { "id": "M03", "label": "Retour vers la cuisine", "a": [11.45, 6.15], "b": [12.55, 6.15], "n": [0, 1], "frames": [800], "status": "coté", "page": 43 },
+    { "id": "M04", "label": "Joue gauche du retrait cuisine", "a": [12.55, 6.15], "b": [12.55, 4.95], "n": [1, 0], "frames": [900], "status": "à confirmer", "page": 44 },
+    { "id": "M05", "label": "Joue droite du retrait cuisine", "a": [14.30, 4.95], "b": [14.30, 6.15], "n": [-1, 0], "frames": [900], "status": "à confirmer", "page": 45 },
+    { "id": "M06", "label": "Self-service — mur nord", "a": [14.30, 6.15], "b": [18.30, 6.15], "n": [0, 1], "frames": [668, 2004, 668], "status": "coté", "page": 46 },
+    { "id": "M07", "label": "Self-service — mur est", "a": [18.30, 6.15], "b": [18.30, 11.95], "n": [-1, 0], "frames": [531, 1593, 531, 1593, 531], "status": "coté", "page": 47 },
+    { "id": "M08", "label": "Self-service — mur sud droit", "a": [18.30, 11.95], "b": [14.35, 11.95], "n": [0, -1], "frames": [658, 1974, 658], "status": "coté", "page": 48 },
+    { "id": "M09", "label": "Décroché du mur sud (retour, cimaise seule)", "a": [14.35, 11.95], "b": [14.35, 11.80], "n": [-1, 0], "frames": [], "status": "déduit", "page": 49 },
+    { "id": "M10", "label": "Self-service — mur sud gauche", "a": [14.35, 11.80], "b": [11.50, 11.80], "n": [0, -1], "frames": [438, 1314, 438], "status": "coté", "page": 50 },
+    { "id": "M11", "label": "Retour droit vers accès", "a": [11.50, 11.80], "b": [11.50, 13.00], "n": [-1, 0], "frames": [900], "status": "à confirmer", "page": 51 },
+    { "id": "M12", "label": "Accès — petit mur droit", "a": [11.50, 13.00], "b": [10.65, 13.00], "n": [0, -1], "frames": [690], "status": "déduit", "page": 52 },
+    { "id": "M13", "label": "Accès — joue de porte droite", "a": [10.75, 13.00], "b": [10.75, 12.50], "n": [1, 0], "frames": [340], "status": "à confirmer", "page": 53 },
+    { "id": "M14", "label": "Accès — mur bas gauche", "a": [9.30, 12.80], "b": [6.40, 12.80], "n": [0, -1], "frames": [448, 1344, 448], "status": "déduit", "page": 54 },
+    { "id": "M15", "label": "Alcôve — mur ouest", "a": [6.40, 12.80], "b": [6.40, 8.70], "n": [1, 0], "frames": [688, 2064, 688], "status": "coté", "page": 55 },
+    { "id": "M16", "label": "Salle à manger — mur sud", "a": [6.40, 8.70], "b": [0, 8.70], "n": [0, -1], "frames": [598, 1793, 598, 1793, 598], "status": "coté", "page": 56 },
+    { "id": "P01", "label": "Trumeau nord entre PF1 / PF2", "a": [2.57, 0], "b": [3.10, 0], "n": [0, 1], "frames": [370], "status": "déduit", "page": 57 },
+    { "id": "P02", "label": "Trumeau nord entre PF2 / PF3", "a": [5.67, 0], "b": [6.20, 0], "n": [0, 1], "frames": [370], "status": "déduit", "page": 58 },
+    { "id": "P03", "label": "Trumeau ouest entre fixes 1 / 2", "a": [0, 3.03], "b": [0, 2.46], "n": [1, 0], "frames": [410], "status": "déduit", "page": 59 },
+    { "id": "P04", "label": "Trumeau ouest entre fixes 2 / 3", "a": [0, 6.16], "b": [0, 5.59], "n": [1, 0], "frames": [410], "status": "déduit", "page": 60 },
+    { "id": "P05", "label": "Angle nord-ouest — face nord", "a": [0, 0], "b": [0.30, 0], "n": [0, 1], "frames": [220], "status": "à confirmer", "page": 61 },
+    { "id": "P06", "label": "Angle nord-ouest — face ouest", "a": [0, 0.30], "b": [0, 0], "n": [1, 0], "frames": [220], "status": "à confirmer", "page": 62 },
+    { "id": "C01", "label": "Poteau central — face nord", "a": [6.16, 5.65], "b": [5.65, 5.65], "n": [0, -1], "frames": [350], "status": "coté", "page": 63 },
+    { "id": "C02", "label": "Poteau central — face est", "a": [6.16, 6.18], "b": [6.16, 5.65], "n": [1, 0], "frames": [370], "status": "coté", "page": 64 },
+    { "id": "C03", "label": "Poteau central — face sud", "a": [5.65, 6.18], "b": [6.16, 6.18], "n": [0, 1], "frames": [350], "status": "coté", "page": 65 },
+    { "id": "C04", "label": "Poteau central — face ouest", "a": [5.65, 5.65], "b": [5.65, 6.18], "n": [-1, 0], "frames": [370], "status": "coté", "page": 66 }
+  ]
+}

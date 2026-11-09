@@ -1,0 +1,230 @@
+{
+  "_doc": "Positions de caméra. pos / target = [X plan, Y plan, hauteur] en mètres (repère R07). Les vues 'perspective' sont des approximations cohérentes avec les rendus cités, pas des recalages photogrammétriques.",
+  "eyeHeight": 1.6,
+  "views": [
+    {
+      "id": "vue-generale",
+      "label": "Vue générale",
+      "group": "Ensemble",
+      "pos": [
+        9.2,
+        22.5,
+        17.0
+      ],
+      "target": [
+        9.2,
+        6.6,
+        0.0
+      ],
+      "fov": 45,
+      "pages": [
+        5,
+        6
+      ]
+    },
+    {
+      "id": "plan-dessus",
+      "label": "Plan vu de dessus",
+      "group": "Ensemble",
+      "pos": [
+        9.15,
+        6.55,
+        27.0
+      ],
+      "target": [
+        9.15,
+        6.45,
+        0.0
+      ],
+      "fov": 40,
+      "pages": [
+        33,
+        22
+      ]
+    },
+    {
+      "id": "salle-ensemble",
+      "label": "Salle – vue d'ensemble",
+      "group": "Salle",
+      "pos": [
+        10.9,
+        7.7,
+        1.65
+      ],
+      "target": [
+        0.0,
+        3.6,
+        1.75
+      ],
+      "fov": 62,
+      "pages": [
+        7,
+        8,
+        1
+      ]
+    },
+    {
+      "id": "salle-vers-baies",
+      "label": "Salle – vers les baies nord",
+      "group": "Salle",
+      "pos": [
+        8.6,
+        8.3,
+        1.6
+      ],
+      "target": [
+        6.0,
+        0.0,
+        1.8
+      ],
+      "fov": 62,
+      "pages": [
+        9,
+        10
+      ]
+    },
+    {
+      "id": "plafond",
+      "label": "Plafond à caissons",
+      "group": "Salle",
+      "pos": [
+        8.4,
+        6.5,
+        1.5
+      ],
+      "target": [
+        4.6,
+        3.3,
+        3.7
+      ],
+      "fov": 70,
+      "pages": [
+        23,
+        28
+      ]
+    },
+    {
+      "id": "banquettes-salle",
+      "label": "Banquettes – salle",
+      "group": "Salle",
+      "pos": [
+        4.6,
+        3.6,
+        1.45
+      ],
+      "target": [
+        0.6,
+        8.2,
+        0.6
+      ],
+      "fov": 62,
+      "pages": [
+        104,
+        13
+      ]
+    },
+    {
+      "id": "banquettes-alcove",
+      "label": "Banquettes – alcôve",
+      "group": "Salle",
+      "pos": [
+        10.6,
+        9.5,
+        1.5
+      ],
+      "target": [
+        6.4,
+        11.9,
+        0.7
+      ],
+      "fov": 62,
+      "pages": [
+        104,
+        22
+      ]
+    },
+    {
+      "id": "buffet-central",
+      "label": "Buffet – îlot central",
+      "group": "Buffet",
+      "pos": [
+        10.7,
+        10.3,
+        1.7
+      ],
+      "target": [
+        17.4,
+        8.7,
+        0.9
+      ],
+      "fov": 62,
+      "pages": [
+        14,
+        15,
+        106
+      ]
+    },
+    {
+      "id": "buffet-profondeur",
+      "label": "Self-service en profondeur",
+      "group": "Buffet",
+      "pos": [
+        11.8,
+        11.3,
+        1.7
+      ],
+      "target": [
+        17.6,
+        7.6,
+        1.0
+      ],
+      "fov": 62,
+      "pages": [
+        16,
+        17,
+        18
+      ]
+    },
+    {
+      "id": "buffets-peripheriques",
+      "label": "Buffets périphériques",
+      "group": "Buffet",
+      "pos": [
+        13.6,
+        6.8,
+        1.6
+      ],
+      "target": [
+        18.3,
+        11.0,
+        0.9
+      ],
+      "fov": 62,
+      "pages": [
+        19,
+        20,
+        105
+      ]
+    },
+    {
+      "id": "acces",
+      "label": "Accès – le seuil",
+      "group": "Accès",
+      "pos": [
+        10.0,
+        12.65,
+        1.6
+      ],
+      "target": [
+        8.6,
+        4.0,
+        1.7
+      ],
+      "fov": 64,
+      "pages": [
+        8,
+        54
+      ]
+    }
+  ]
+}

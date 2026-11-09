@@ -1,0 +1,27 @@
+{
+  "_doc": "Plafond R07 (PDF p.71-78, 99-100). Interprétation : bandeaux et périphérie en sous-face +3,30 (dessous de gorge) ; caissons G1-G6 ouverts jusqu'à la sous-face BA13 +3,60 ; gorge lumineuse continue sur chaque périmètre (LED à 0,133 m à l'intérieur du cadre). Le bandeau masque les poutres dont la retombée est inconnue.",
+  "status": "proposé",
+  "pages": [23, 67, 71, 73, 99],
+  "gorge": { "saillieP": 0.18, "ouvertureO": 0.08, "reculR": 0.06, "ledInset": 0.133, "status": "proposé", "note": "180 / 80 / 60 mm = réservations proposées, pas des relevés", "pages": [73] },
+  "corniche": { "height": 0.16, "projection": 0.12, "status": "à confirmer", "note": "Profil décoratif schématique : reprendre le gabarit réel sans redessiner le motif (p.73) ; frise feuillagée non reproduite", "pages": [28, 73] },
+  "gorges": [
+    { "id": "G1", "x0": 0.50, "y0": 0.50, "x1": 5.30, "y1": 5.30, "led": 18.13 },
+    { "id": "G2", "x0": 6.50, "y0": 0.50, "x1": 10.95, "y1": 5.30, "led": 17.43 },
+    { "id": "G3", "x0": 0.50, "y0": 6.60, "x1": 5.30, "y1": 8.20, "led": 11.73 },
+    { "id": "G4", "x0": 6.70, "y0": 6.60, "x1": 10.95, "y1": 8.20, "led": 10.63, "note": "Les planches d'intention p.22-23 montrent un cadre à redent ; R07 donne un rectangle (retenu)" },
+    { "id": "G5", "x0": 6.85, "y0": 9.20, "x1": 10.95, "y1": 12.30, "led": 13.33 },
+    { "id": "G6", "x0": 12.00, "y0": 6.65, "x1": 17.80, "y1": 11.45, "led": 20.13 }
+  ],
+  "rosaces": {
+    "diameter": 0.90, "diameterStatus": "à confirmer", "note": "Diamètre non déduit des photos (p.75) : valeur de travail",
+    "items": [
+      { "id": "L01", "x": 2.900, "y": 2.900 },
+      { "id": "L02", "x": 8.725, "y": 2.900 },
+      { "id": "L03", "x": 2.900, "y": 7.400 },
+      { "id": "L04", "x": 8.825, "y": 7.400 },
+      { "id": "L05", "x": 8.900, "y": 10.750 },
+      { "id": "L06", "x": 13.450, "y": 9.050 },
+      { "id": "L07", "x": 16.350, "y": 9.050 }
+    ]
+  }
+}
