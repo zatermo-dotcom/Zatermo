@@ -1,0 +1,150 @@
+{
+  "_doc": "Palette crème / ivoire / bordeaux / bois sombre / doré (PDF p.12-13, p.102-106). Couleurs hexadécimales et paramètres PBR éditables.",
+  "pages": [
+    12,
+    13,
+    21,
+    22,
+    102,
+    103,
+    104,
+    105,
+    106
+  ],
+  "mur": {
+    "color": "#e7d6b9",
+    "roughness": 0.85
+  },
+  "murBas": {
+    "color": "#e2cfaf",
+    "roughness": 0.8
+  },
+  "moulure": {
+    "color": "#c9a256",
+    "roughness": 0.35,
+    "metalness": 0.65
+  },
+  "cimaise": {
+    "color": "#c9a256",
+    "roughness": 0.35,
+    "metalness": 0.65
+  },
+  "plinthe": {
+    "color": "#e4d4b6",
+    "roughness": 0.6
+  },
+  "plafond": {
+    "color": "#efe2c9",
+    "roughness": 0.9
+  },
+  "corniche": {
+    "color": "#eadbc0",
+    "roughness": 0.7
+  },
+  "rosace": {
+    "color": "#eee0c6",
+    "roughness": 0.65
+  },
+  "laiton": {
+    "color": "#c8a050",
+    "roughness": 0.28,
+    "metalness": 0.9
+  },
+  "boisSombre": {
+    "color": "#3b2418",
+    "roughness": 0.55
+  },
+  "noirPietement": {
+    "color": "#151414",
+    "roughness": 0.4,
+    "metalness": 0.3
+  },
+  "marbreCreme": {
+    "color": "#eadbbd",
+    "roughness": 0.18
+  },
+  "marbreNoir": {
+    "color": "#1a1817",
+    "roughness": 0.15
+  },
+  "joint": {
+    "color": "#d5c3a2"
+  },
+  "veloursBordeaux": {
+    "color": "#6e1423",
+    "roughness": 0.9
+  },
+  "socleBanquette": {
+    "color": "#2a1a14",
+    "roughness": 0.6
+  },
+  "buffetCaisson": {
+    "color": "#e3d2b2",
+    "roughness": 0.55
+  },
+  "buffetPlinthe": {
+    "color": "#1c1a18",
+    "roughness": 0.4
+  },
+  "vitrage": {
+    "color": "#9fb4c4",
+    "opacity": 0.25
+  },
+  "menuiserie": {
+    "color": "#e8dcc6",
+    "roughness": 0.5
+  },
+  "porte": {
+    "color": "#d9c7a6",
+    "roughness": 0.6
+  },
+  "exterieurNuit": {
+    "color": "#1b2a44"
+  },
+  "floorVariants": {
+    "sol-A": {
+      "label": "Sol A – calepinage p.22 : dalles marbre crème + cadres larges marbre noir alignés sur les 6 caissons",
+      "tile": 0.8,
+      "tileStatus": "à confirmer",
+      "band": 0.3,
+      "bandStatus": "à confirmer",
+      "bandAround": "gorges",
+      "pages": [
+        22
+      ],
+      "status": "proposé (retenu)"
+    },
+    "sol-B": {
+      "label": "Sol B – filet noir étroit des perspectives p.7, p.14, p.21",
+      "tile": 0.8,
+      "tileStatus": "à confirmer",
+      "band": 0.14,
+      "bandStatus": "à confirmer",
+      "bandAround": "gorges",
+      "pages": [
+        7,
+        14,
+        21
+      ],
+      "status": "variante d'image"
+    }
+  },
+  "lustreVariants": {
+    "abat-jour": {
+      "label": "Lustre 6 bras à abat-jour (p.1, p.7-9, p.14)",
+      "pages": [
+        7,
+        8,
+        14
+      ],
+      "status": "retenu"
+    },
+    "vasque": {
+      "label": "Suspension vasque (variante de rendu p.11)",
+      "pages": [
+        11
+      ],
+      "status": "variante d'image"
+    }
+  }
+}

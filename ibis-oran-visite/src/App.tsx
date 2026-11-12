@@ -1,0 +1,324 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Options, ProjectData, RenderItem } from './types';
+import { loadProjectData } from './data';
+import { Tour, type CamState, type ModelStats } from './engine/Tour';
+import { polygonArea } from './engine/util';
+import { PlanView, type PlanMode } from './components/PlanView';
+import { checkLayout } from './engine/layoutCheck';
+import { downloadJSON, editableLayout, moveIlot, moveTable, rotateTable } from './engine/layoutEdit';
+import { resolveTables } from './engine/furniture';
+import { Gallery, SettingsPanel, SourcesPanel } from './components/Panels';
+import { WallsPanel } from './components/WallsPanel';
+import { Compare } from './components/Compare';
+
+type Tab = 'vues' | 'plan' | 'murs' | 'rendus' | 'sources' | 'reglages';
+interface Lightbox { file: string; title: string; page: number; note?: string; camera?: string; face?: string; list?: RenderItem[]; index?: number; model?: string }
+
+const DEFAULT_OPTIONS: Options = { layout: 'amenagement-02', floor: 'sol-A', lustre: 'abat-jour', showCeiling: true, showFurniture: true, quality: 'standard', bloom: true };
+
+declare global { interface Window { __tour?: Tour } }
+
+export default function App() {
+  const host = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const tour = useRef<Tour | undefined>(undefined);
+  const [data, setData] = useState<ProjectData>();
+  const [error, setError] = useState<string>();
+  const [options, setOptions] = useState<Options>(() => {
+    const q = new URLSearchParams(location.search);
+    return { ...DEFAULT_OPTIONS, ...(q.get('qualite') === 'elevee' ? { quality: 'elevee' } : {}) };
+  });
+  const [tab, setTab] = useState<Tab>('plan');
+  const [panelOpen, setPanelOpen] = useState(() => window.innerWidth > 760);
+  const [presentation, setPresentation] = useState(false);
+  const [cam, setCam] = useState<CamState>();
+  const [activeView, setActiveView] = useState<string | null>('vue-generale');
+  const [stats, setStats] = useState<ModelStats>();
+  const [lightbox, setLightbox] = useState<Lightbox | null>(null);
+  const [toast, setToast] = useState<string>();
+  const [busy, setBusy] = useState(false);
+  const [help, setHelp] = useState(false);
+  const [planMode, setPlanMode] = useState<PlanMode>('nav');
+  const [selected, setSelected] = useState<string | null>(null);
+  const [passage, setPassage] = useState(0.6);
+  const [showIssues, setShowIssues] = useState(true);
+  const [edited, setEdited] = useState(false);
+  const original = useRef<ProjectData['furniture'] | undefined>(undefined);
+
+  const flash = (m: string) => { setToast(m); window.setTimeout(() => setToast(undefined), 2600); };
+
+  useEffect(() => { loadProjectData().then((d) => { original.current = structuredClone(d.furniture); setData(d); }).catch((e: Error) => setError(e.message)); }, []);
+
+  useEffect(() => {
+    if (!data || !host.current || tour.current) return;
+    try {
+      const t = new Tour(host.current, data, options);
+      tour.current = t; window.__tour = t;
+      t.onCamera = setCam; t.onView = setActiveView;
+      setStats(t.stats);
+      const start = new URLSearchParams(location.search).get('vue') ?? 'vue-generale';
+      t.goTo(start, true);
+    } catch (e) { setError(`WebGL indisponible : ${(e as Error).message}`); }
+    return () => { /* conservé pendant la session */ };
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => () => { tour.current?.dispose(); tour.current = undefined; }, []);
+
+  const go = useCallback((id: string) => { tour.current?.goTo(id); setLightbox(null); if (window.innerWidth <= 760) setPanelOpen(false); }, []);
+  const change = (o: Partial<Options>) => { const n = { ...options, ...o }; setOptions(n); tour.current?.setOptions(o); setStats(tour.current?.stats); };
+
+  const reload = async () => {
+    setBusy(true);
+    try { const d = await loadProjectData(); original.current = structuredClone(d.furniture); setEdited(false); setData(d); tour.current?.rebuild(d, options); setStats(tour.current?.stats); flash('Données rechargées'); }
+    catch (e) { flash((e as Error).message); } finally { setBusy(false); }
+  };
+  const exportGLB = async () => {
+    if (!tour.current) return; setBusy(true);
+    try {
+      const buf = await tour.current.exportGLB();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf], { type: 'model/gltf-binary' }));
+      a.download = `restaurant-ibis-oran_${options.layout}_${options.floor}.glb`; a.click(); URL.revokeObjectURL(a.href);
+      flash(`GLB exporté (${(buf.byteLength / 1e6).toFixed(1)} Mo)`);
+    } finally { setBusy(false); }
+  };
+  const copyView = async () => {
+    const j = tour.current?.currentViewJSON(); if (!j) return;
+    try { await navigator.clipboard.writeText(j); flash('Vue copiée : collez-la dans data/cameras.json'); } catch { window.prompt('Vue courante (à coller dans cameras.json) :', j); }
+  };
+  const fullscreen = async () => {
+    const on = !document.fullscreenElement;
+    try { if (on) await document.documentElement.requestFullscreen(); else await document.exitFullscreen(); } catch { /* iOS : mode présentation seul */ }
+    setPresentation(on); if (on) setPanelOpen(false);
+  };
+  useEffect(() => {
+    const f = () => { if (!document.fullscreenElement) setPresentation(false); };
+    document.addEventListener('fullscreenchange', f); return () => document.removeEventListener('fullscreenchange', f);
+  }, []);
+
+  // la vue 3D se centre dans la partie non couverte par le panneau (écrans larges)
+  useEffect(() => {
+    const el = panelRef.current; const t = tour.current; if (!t) return;
+    if (!el || presentation || window.innerWidth <= 760) { t.setInsetRight(0); return; }
+    const upd = () => t.setInsetRight(Math.max(0, window.innerWidth - el.getBoundingClientRect().left));
+    upd(); const ro = new ResizeObserver(upd); ro.observe(el); window.addEventListener('resize', upd);
+    return () => { ro.disconnect(); window.removeEventListener('resize', upd); };
+  }, [panelOpen, presentation, data, stats]);
+
+  // --- édition de l'implantation sur le plan ---
+  const issues = useMemo(() => (data ? checkLayout(data.furniture, data.geometry, options.layout, passage) : []), [data, options.layout, passage]);
+  const setFurniture = (f: ProjectData['furniture'], rebuild3D: boolean) => {
+    if (!data) return; setData({ ...data, furniture: f }); setEdited(true);
+    if (rebuild3D) { tour.current?.updateFurniture(f); setStats(tour.current?.stats); }
+  };
+  const pending = useRef<ProjectData['furniture'] | undefined>(undefined);
+  const onDrag = (id: string, x: number, y: number) => {
+    if (!data) return;
+    const f = id === 'ILOT' ? moveIlot(data.furniture, x, y) : moveTable(data.furniture, options.layout, id, x, y);
+    pending.current = f; setData({ ...data, furniture: f }); setEdited(true);
+  };
+  const onDragEnd = () => { if (pending.current) { tour.current?.updateFurniture(pending.current); setStats(tour.current?.stats); pending.current = undefined; } };
+  const selTable = data && selected && selected !== 'ILOT' ? resolveTables(data.furniture, options.layout).find((t) => t.id === selected) : undefined;
+  const editKey = data ? editableLayout(data.furniture, options.layout) : '';
+
+  const area = useMemo(() => data ? polygonArea(data.geometry.outline.points) - data.geometry.poteau.w * data.geometry.poteau.d : 0, [data]);
+  const view = data?.cameras.views.find((v) => v.id === activeView);
+  const related = useMemo(() => (data && activeView ? data.renders.items.filter((r) => r.camera === activeView) : []), [data, activeView]);
+
+  const openRender = (r: RenderItem, list?: RenderItem[]) => {
+    const l = list ?? data?.renders.items ?? [];
+    setLightbox({ file: r.file, title: r.title, page: r.page, note: r.note, camera: r.camera, list: l, index: l.findIndex((x) => x.id === r.id) });
+  };
+  const compare = () => {
+    const lb = lightbox; const t = tour.current; if (!lb?.camera || !t) return;
+    const img = new Image();
+    img.onload = () => {
+      const w = 1280; const h = Math.round((w * img.naturalHeight) / img.naturalWidth);
+      setLightbox({ ...lb, model: t.snapshot(lb.camera!, w, h) });
+    };
+    img.src = `${import.meta.env.BASE_URL}${lb.file}`;
+  };
+  const stepLightbox = (d: number) => {
+    if (!lightbox?.list || lightbox.index === undefined) return;
+    const i = (lightbox.index + d + lightbox.list.length) % lightbox.list.length; openRender(lightbox.list[i], lightbox.list);
+  };
+
+  // marche continue tant qu'un bouton tactile est maintenu
+  const hold = useRef<number | undefined>(undefined);
+  const startHold = (fn: () => void) => { fn(); hold.current = window.setInterval(fn, 30); };
+  const stopHold = () => { window.clearInterval(hold.current); };
+
+  if (error) return <div className="fatal"><h1>Visite indisponible</h1><p>{error}</p></div>;
+
+  const groups = data ? Array.from(new Set(data.cameras.views.map((v) => v.group))) : [];
+  const base = import.meta.env.BASE_URL;
+
+  return (
+    <div className={`app ${presentation ? 'presentation' : ''}`}>
+      <div className="viewport" ref={host} />
+      {!data && <div className="loading">Chargement du modèle…</div>}
+
+      <header className="brand">
+        <div className="title">Restaurant ibis · Oran</div>
+        <div className="subtitle">Visite 3D — d'après le portfolio ILK (161,68 m²)</div>
+      </header>
+
+      <div className="topbar">
+        <button className="btn icon" onClick={() => setHelp((h) => !h)} aria-label="Aide aux commandes">?</button>
+        <button className="btn" onClick={fullscreen}>{presentation ? 'Quitter la présentation' : 'Plein écran'}</button>
+        {!presentation && <button className="btn" onClick={() => setPanelOpen((o) => !o)}>{panelOpen ? 'Masquer le panneau' : 'Panneau'}</button>}
+      </div>
+
+      {data && !presentation && panelOpen && (
+        <aside className="panel" ref={panelRef}>
+          <nav className="tabs" role="tablist">
+            {([['plan', 'Plan'], ['vues', 'Vues'], ['murs', 'Murs'], ['rendus', 'Rendus'], ['sources', 'Sources'], ['reglages', 'Réglages']] as [Tab, string][]).map(([k, l]) => (
+              <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
+            ))}
+          </nav>
+          <div className="panel-body">
+            {tab === 'plan' && (
+              <>
+                <div className="seg" role="group" aria-label="Mode du plan">
+                  {([['nav', 'Naviguer'], ['edit', 'Éditer le mobilier'], ['measure', 'Mesurer']] as [PlanMode, string][]).map(([k, l]) => (
+                    <button key={k} className={planMode === k ? 'on' : ''} onClick={() => { setPlanMode(k); setSelected(null); }}>{l}</button>
+                  ))}
+                </div>
+                <p className="hint">
+                  {planMode === 'nav' && 'Clic sur une zone ou un point de vue : la caméra s\'y rend. Double-clic : déplacement à ce point. Le plan est tracé à partir des mêmes données que le modèle.'}
+                  {planMode === 'edit' && `Glisser une table (avec ses chaises) ou l'îlot ; pas de 5 cm. Le modèle 3D se met à jour au relâchement. Implantation modifiée : ${data.furniture.layouts[editKey]?.label ?? editKey}.`}
+                  {planMode === 'measure' && 'Cliquer deux points : distance en plan (mètres). Un troisième clic recommence.'}
+                </p>
+                <PlanView data={data} layout={options.layout} cam={cam} activeView={activeView} mode={planMode} issues={showIssues ? issues : []} selected={selected}
+                  onZone={go} onView={go} onSelect={setSelected} onDrag={onDrag} onDragEnd={onDragEnd}
+                  onMove={(x, y) => { if (!tour.current?.moveToPlan(x, y)) flash('Point hors de la salle'); }} />
+                <div className="legend"><span className="lg wall" />murs <span className="lg win" />baies <span className="lg ban" />banquettes <span className="lg buf" />buffets <span className="lg frame" />cadres sol/plafond</div>
+                {planMode === 'edit' && (
+                  <div className="editbox">
+                    {selected ? (
+                      <>
+                        <b>{selected === 'ILOT' ? 'Îlot central' : `Table ${selected} (${selTable?.type === 'rect' ? 'rectangulaire' : 'carrée'})`}</b>{' '}
+                        X <input type="number" step={0.05} value={selected === 'ILOT' ? data.furniture.ilot.x : selTable?.x ?? 0}
+                          onChange={(e) => setFurniture(selected === 'ILOT' ? moveIlot(data.furniture, Number(e.target.value), data.furniture.ilot.y) : moveTable(data.furniture, options.layout, selected, Number(e.target.value), selTable!.y), true)} />{' '}
+                        Y <input type="number" step={0.05} value={selected === 'ILOT' ? data.furniture.ilot.y : selTable?.y ?? 0}
+                          onChange={(e) => setFurniture(selected === 'ILOT' ? moveIlot(data.furniture, data.furniture.ilot.x, Number(e.target.value)) : moveTable(data.furniture, options.layout, selected, selTable!.x, Number(e.target.value)), true)} />{' '}
+                        {selTable && <button className="mini" onClick={() => setFurniture(rotateTable(data.furniture, options.layout, selected), true)}>Pivoter 90° ({selTable.rot}°)</button>}
+                      </>
+                    ) : 'Sélectionner une table ou l\'îlot sur le plan.'}
+                    <div className="row" style={{ marginTop: 8 }}>
+                      <button className="btn" onClick={() => downloadJSON('furniture.json', data.furniture)}>Télécharger furniture.json</button>
+                      <button className="btn" disabled={!edited} onClick={() => { if (original.current) { setFurniture(structuredClone(original.current), true); setEdited(false); setSelected(null); } }}>Annuler les modifications</button>
+                    </div>
+                    <p className="hint">Remplacer <code>public/data/furniture.json</code> par le fichier téléchargé pour conserver les corrections.</p>
+                  </div>
+                )}
+                <h4>Contrôle d'implantation ({issues.filter((i) => i.level === 'conflit').length} conflit(s), {issues.filter((i) => i.level === 'passage').length} point(s) d'attention)</h4>
+                <p className="hint">Mesures en plan indicatives (emprises des gabarits du dossier) : ce n'est pas une vérification réglementaire des dégagements.</p>
+                <div className="toggles">
+                  <label><input type="checkbox" checked={showIssues} onChange={(e) => setShowIssues(e.target.checked)} /> Afficher sur le plan</label>
+                  <label>Seuil de passage{' '}
+                    <select value={passage} onChange={(e) => setPassage(Number(e.target.value))}>
+                      {[0.6, 0.9, 1.2, 1.4].map((v) => <option key={v} value={v}>{v.toFixed(2).replace('.', ',')} m</option>)}
+                    </select>
+                  </label>
+                </div>
+                <ul className="issues">{issues.map((i, k) => <li key={k} className={i.level}>{i.text}</li>)}</ul>
+              </>
+            )}
+            {tab === 'vues' && groups.map((gr) => (
+              <div key={gr} className="viewgroup">
+                <h4>{gr}</h4>
+                {data.cameras.views.filter((v) => v.group === gr).map((v) => (
+                  <button key={v.id} className={`viewbtn ${activeView === v.id ? 'on' : ''}`} onClick={() => go(v.id)}>
+                    <span>{v.label}</span><span className="pages">p. {v.pages.join(', ')}</span>
+                  </button>
+                ))}
+              </div>
+            ))}
+            {tab === 'murs' && <WallsPanel data={data}
+              onFace={(id) => { tour.current?.goToFace(id); if (window.innerWidth <= 760) setPanelOpen(false); }}
+              onSheet={(id) => { const f = data.walls.faces.find((x) => x.id === id)!; setLightbox({ file: `plans/elevations/${id}.jpg`, title: `Élévation ${id} — ${f.label}`, page: f.page, face: id, note: `Statut : ${f.status}. Cadres hors tout : ${f.frames.join(' / ') || 'aucun'} mm.` }); }} />}
+            {tab === 'rendus' && <Gallery data={data} onOpen={(r) => openRender(r)} onOpenPlan={(file, title, page) => setLightbox({ file, title, page })} />}
+            {tab === 'sources' && <SourcesPanel data={data} area={area} />}
+            {tab === 'reglages' && <SettingsPanel data={data} options={options} stats={stats} busy={busy} conflicts={issues.filter((i) => i.level === 'conflit').length} onChange={change} onReload={reload} onExport={exportGLB} onCopyView={copyView} />}
+          </div>
+        </aside>
+      )}
+
+      {data && (
+        <nav className="viewbar" aria-label="Positions de caméra">
+          {['vue-generale', 'salle-ensemble', 'plafond', 'banquettes-alcove', 'buffet-central', 'buffets-peripheriques', 'acces'].map((id) => {
+            const v = data.cameras.views.find((x) => x.id === id); if (!v) return null;
+            return <button key={id} className={activeView === id ? 'on' : ''} onClick={() => go(id)}>{v.label}</button>;
+          })}
+        </nav>
+      )}
+
+      {data && view && related.length > 0 && !lightbox && (
+        <div className="related">
+          <span>Rendus de référence pour « {view.label} » :</span>
+          {related.map((r) => (
+            <button key={r.id} onClick={() => openRender(r, related)} title={r.title}>
+              <img src={`${base}${r.file}`} alt="" /><em>p.{r.page}</em>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {data && cam && !cam.overview && (
+        <div className="walkpad" aria-label="Déplacement">
+          <button onPointerDown={() => startHold(() => tour.current?.walk(0.05))} onPointerUp={stopHold} onPointerLeave={stopHold} aria-label="Avancer">▲</button>
+          <div>
+            <button onPointerDown={() => startHold(() => tour.current?.turn(0.02))} onPointerUp={stopHold} onPointerLeave={stopHold} aria-label="Tourner à gauche">◀</button>
+            <button onPointerDown={() => startHold(() => tour.current?.walk(-0.05))} onPointerUp={stopHold} onPointerLeave={stopHold} aria-label="Reculer">▼</button>
+            <button onPointerDown={() => startHold(() => tour.current?.turn(-0.02))} onPointerUp={stopHold} onPointerLeave={stopHold} aria-label="Tourner à droite">▶</button>
+          </div>
+        </div>
+      )}
+
+      {help && (
+        <div className="help" onClick={() => setHelp(false)}>
+          <h3>Commandes</h3>
+          <ul>
+            <li><b>Glisser</b> (souris ou doigt) : regarder autour / tourner autour du plan</li>
+            <li><b>Double-clic / double-tap au sol</b> : se déplacer à cet endroit</li>
+            <li><b>Molette</b>, <b>flèches</b>, <b>Z/Q/S/D</b> ou pavé ▲▼ : avancer, reculer, tourner</li>
+            <li>Vue générale : molette / pincer = zoom, clic droit ou deux doigts = déplacer</li>
+            <li><b>Plan</b> : cliquer une zone ou un point de vue</li>
+            <li><b>Rendus</b> : images de référence du PDF, avec retour au modèle</li>
+          </ul>
+          <p className="hint">Cliquer pour fermer</p>
+        </div>
+      )}
+
+      {lightbox && (
+        <div className="lightbox" role="dialog" aria-modal="true" aria-label={lightbox.title} onKeyDown={(e) => { if (e.key === 'Escape') setLightbox(null); }}>
+          <div className="lb-head">
+            <div>
+              <span className="badge st-ref">{lightbox.face ? 'Planche cotée' : 'Image de référence'} du PDF — p.{lightbox.page}</span>
+              <h3>{lightbox.title}</h3>
+              {lightbox.note && <p className="note">{lightbox.note}</p>}
+            </div>
+            <div className="row">
+              {lightbox.camera && !lightbox.face && (lightbox.model
+                ? <button className="btn" onClick={() => setLightbox({ ...lightbox, model: undefined })}>Rendu seul</button>
+                : <button className="btn" onClick={compare}>Comparer avec le modèle</button>)}
+              {lightbox.camera && <button className="btn primary" onClick={() => go(lightbox.camera!)}>Voir la position dans le modèle 3D</button>}
+              {lightbox.face && <button className="btn primary" onClick={() => { tour.current?.goToFace(lightbox.face!); setLightbox(null); }}>Vue frontale dans le modèle 3D</button>}
+              <button className="btn" onClick={() => setLightbox(null)} autoFocus>Retour au modèle</button>
+            </div>
+          </div>
+          <div className="lb-img">
+            {lightbox.list && lightbox.list.length > 1 && <button className="lb-nav" onClick={() => stepLightbox(-1)} aria-label="Précédent">‹</button>}
+            {lightbox.model
+              ? <Compare render={`${base}${lightbox.file}`} model={lightbox.model} title={lightbox.title} />
+              : <img src={`${base}${lightbox.file}`} alt={lightbox.title} />}
+            {lightbox.list && lightbox.list.length > 1 && <button className="lb-nav" onClick={() => stepLightbox(1)} aria-label="Suivant">›</button>}
+          </div>
+          <p className="hint center">Rendu fixe fourni dans le dossier : il n'est ni un panorama ni une vue calculée du modèle ; certaines images montrent des variantes non retenues.</p>
+        </div>
+      )}
+
+      {toast && <div className="toast" role="status">{toast}</div>}
+    </div>
+  );
+}

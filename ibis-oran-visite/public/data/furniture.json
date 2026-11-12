@@ -1,0 +1,704 @@
+{
+  "_doc": "Mobilier – quantités et gabarits : annexe F (PDF p.102-107, version principale). Implantation : adaptation de l'Aménagement 02 (p.6, vue de principe SANS échelle) sur la géométrie cotée : positions à confirmer sur un plan de mobilier coté (p.18, p.36). Repère plan X/Y en mètres ; rot = rotation en degrés autour de la verticale.",
+  "status": "à confirmer",
+  "specs": {
+    "chaise": {
+      "w": 0.5,
+      "d": 0.56,
+      "h": 0.9,
+      "seatH": 0.45,
+      "status": "proposé",
+      "pages": [
+        102
+      ],
+      "note": "Capitonnage Chesterfield uniquement sur la face intérieure du dossier"
+    },
+    "tableRect": {
+      "w": 1.2,
+      "d": 0.8,
+      "h": 0.75,
+      "top": 0.03,
+      "status": "proposé",
+      "pages": [
+        103
+      ]
+    },
+    "tableCarree": {
+      "w": 0.9,
+      "d": 0.9,
+      "h": 0.75,
+      "top": 0.03,
+      "status": "proposé",
+      "pages": [
+        103
+      ]
+    },
+    "banquette": {
+      "depth": 0.65,
+      "h": 0.9,
+      "seatH": 0.45,
+      "status": "proposé",
+      "pages": [
+        104,
+        107
+      ]
+    },
+    "buffetPeripherique": {
+      "h": 0.9,
+      "top": 0.03,
+      "status": "proposé",
+      "pages": [
+        105,
+        107
+      ],
+      "note": "Rangements fermés : étagères derrière portes ; plateau marbre crème"
+    },
+    "ilot": {
+      "w": 2.2,
+      "d": 1.8,
+      "h": 0.9,
+      "top": 0.03,
+      "bays": 8,
+      "niches": 16,
+      "status": "proposé",
+      "pages": [
+        106,
+        107
+      ],
+      "note": "8 travées ouvertes (4 par grande face), 16 niches à assiettes, AUCUNE porte"
+    }
+  },
+  "chairColors": {
+    "ivoire": "#efe6d2",
+    "bordeaux": "#6e1423",
+    "noir": "#1d1b1a"
+  },
+  "layouts": {
+    "amenagement-02": {
+      "label": "Aménagement 02 – version principale (15 tables / 40 chaises)",
+      "pages": [
+        6,
+        102,
+        103,
+        107
+      ],
+      "tables": [
+        {
+          "id": "T01",
+          "type": "rect",
+          "x": 1.3,
+          "y": 1.75,
+          "rot": 90,
+          "chairs": [
+            [
+              "E",
+              -0.3,
+              "noir"
+            ],
+            [
+              "E",
+              0.3,
+              "noir"
+            ]
+          ]
+        },
+        {
+          "id": "T02",
+          "type": "rect",
+          "x": 3.9,
+          "y": 1.35,
+          "rot": 0,
+          "chairs": [
+            [
+              "S",
+              -0.3,
+              "noir"
+            ],
+            [
+              "S",
+              0.3,
+              "noir"
+            ]
+          ]
+        },
+        {
+          "id": "T03",
+          "type": "rect",
+          "x": 1.3,
+          "y": 4.3,
+          "rot": 90,
+          "chairs": [
+            [
+              "E",
+              -0.3,
+              "ivoire"
+            ],
+            [
+              "E",
+              0.3,
+              "ivoire"
+            ]
+          ]
+        },
+        {
+          "id": "T04",
+          "type": "carree",
+          "x": 5.9,
+          "y": 1.9,
+          "rot": 0,
+          "chairs": [
+            [
+              "N",
+              0,
+              "ivoire"
+            ],
+            [
+              "S",
+              0,
+              "bordeaux"
+            ],
+            [
+              "E",
+              0,
+              "ivoire"
+            ],
+            [
+              "W",
+              0,
+              "bordeaux"
+            ]
+          ]
+        },
+        {
+          "id": "T05",
+          "type": "carree",
+          "x": 5.9,
+          "y": 4.1,
+          "rot": 0,
+          "chairs": [
+            [
+              "N",
+              0,
+              "bordeaux"
+            ],
+            [
+              "S",
+              0,
+              "bordeaux"
+            ],
+            [
+              "E",
+              0,
+              "ivoire"
+            ],
+            [
+              "W",
+              0,
+              "ivoire"
+            ]
+          ]
+        },
+        {
+          "id": "T06",
+          "type": "carree",
+          "x": 8.1,
+          "y": 1.8,
+          "rot": 0,
+          "chairs": [
+            [
+              "N",
+              0,
+              "ivoire"
+            ],
+            [
+              "S",
+              0,
+              "ivoire"
+            ],
+            [
+              "E",
+              0,
+              "ivoire"
+            ],
+            [
+              "W",
+              0,
+              "ivoire"
+            ]
+          ]
+        },
+        {
+          "id": "T07",
+          "type": "carree",
+          "x": 8.1,
+          "y": 4.0,
+          "rot": 0,
+          "chairs": [
+            [
+              "N",
+              0,
+              "ivoire"
+            ],
+            [
+              "S",
+              0,
+              "ivoire"
+            ],
+            [
+              "E",
+              0,
+              "ivoire"
+            ],
+            [
+              "W",
+              0,
+              "ivoire"
+            ]
+          ]
+        },
+        {
+          "id": "T08",
+          "type": "rect",
+          "x": 10.25,
+          "y": 1.1,
+          "rot": 90,
+          "chairs": [
+            [
+              "W",
+              -0.3,
+              "ivoire"
+            ],
+            [
+              "W",
+              0.3,
+              "ivoire"
+            ]
+          ]
+        },
+        {
+          "id": "T09",
+          "type": "rect",
+          "x": 10.25,
+          "y": 2.65,
+          "rot": 90,
+          "chairs": [
+            [
+              "W",
+              -0.3,
+              "ivoire"
+            ],
+            [
+              "W",
+              0.3,
+              "ivoire"
+            ]
+          ]
+        },
+        {
+          "id": "T10",
+          "type": "rect",
+          "x": 10.25,
+          "y": 4.2,
+          "rot": 90,
+          "chairs": [
+            [
+              "W",
+              -0.3,
+              "ivoire"
+            ],
+            [
+              "W",
+              0.3,
+              "ivoire"
+            ]
+          ]
+        },
+        {
+          "id": "T11",
+          "type": "carree",
+          "x": 9.4,
+          "y": 7.4,
+          "rot": 0,
+          "chairs": [
+            [
+              "N",
+              0,
+              "ivoire"
+            ],
+            [
+              "S",
+              0,
+              "ivoire"
+            ],
+            [
+              "E",
+              0,
+              "ivoire"
+            ],
+            [
+              "W",
+              0,
+              "ivoire"
+            ]
+          ]
+        },
+        {
+          "id": "T12",
+          "type": "rect",
+          "x": 1.35,
+          "y": 7.35,
+          "rot": 90,
+          "chairs": [
+            [
+              "E",
+              -0.3,
+              "bordeaux"
+            ],
+            [
+              "E",
+              0.3,
+              "bordeaux"
+            ]
+          ]
+        },
+        {
+          "id": "T13",
+          "type": "rect",
+          "x": 4.0,
+          "y": 7.6,
+          "rot": 0,
+          "chairs": [
+            [
+              "N",
+              -0.3,
+              "bordeaux"
+            ],
+            [
+              "N",
+              0.3,
+              "bordeaux"
+            ]
+          ]
+        },
+        {
+          "id": "T14",
+          "type": "rect",
+          "x": 7.5,
+          "y": 9.9,
+          "rot": 90,
+          "chairs": [
+            [
+              "E",
+              -0.3,
+              "bordeaux"
+            ],
+            [
+              "E",
+              0.3,
+              "ivoire"
+            ]
+          ]
+        },
+        {
+          "id": "T15",
+          "type": "rect",
+          "x": 7.5,
+          "y": 11.4,
+          "rot": 90,
+          "chairs": [
+            [
+              "E",
+              -0.3,
+              "bordeaux"
+            ],
+            [
+              "E",
+              0.3,
+              "ivoire"
+            ]
+          ]
+        }
+      ]
+    },
+    "amenagement-01": {
+      "label": "Aménagement 01 – variante (12 tables, p.5) – non retenue",
+      "pages": [
+        5
+      ],
+      "basedOn": "amenagement-02",
+      "removeTables": [
+        "T06",
+        "T07",
+        "T11"
+      ]
+    }
+  },
+  "banquettes": [
+    {
+      "id": "B01",
+      "type": "L",
+      "pages": [
+        104,
+        107
+      ],
+      "branches": [
+        {
+          "a": [
+            0,
+            0
+          ],
+          "b": [
+            2.6,
+            0
+          ],
+          "n": [
+            0,
+            1
+          ]
+        },
+        {
+          "a": [
+            0,
+            0
+          ],
+          "b": [
+            0,
+            2.4
+          ],
+          "n": [
+            1,
+            0
+          ]
+        }
+      ],
+      "note": "2,60 + 2,40 – devant PF1 / fixe 1 comme sur p.6 : à confirmer (dégagement des baies)"
+    },
+    {
+      "id": "B02",
+      "type": "droit",
+      "pages": [
+        104,
+        107
+      ],
+      "branches": [
+        {
+          "a": [
+            0,
+            3.0
+          ],
+          "b": [
+            0,
+            5.6
+          ],
+          "n": [
+            1,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B03",
+      "type": "droit",
+      "pages": [
+        104,
+        107
+      ],
+      "branches": [
+        {
+          "a": [
+            3.2,
+            0
+          ],
+          "b": [
+            5.6,
+            0
+          ],
+          "n": [
+            0,
+            1
+          ]
+        }
+      ],
+      "note": "Devant PF2 comme sur p.6 : à confirmer"
+    },
+    {
+      "id": "B04",
+      "type": "L",
+      "pages": [
+        104,
+        107
+      ],
+      "branches": [
+        {
+          "a": [
+            0,
+            8.7
+          ],
+          "b": [
+            5.7,
+            8.7
+          ],
+          "n": [
+            0,
+            -1
+          ]
+        },
+        {
+          "a": [
+            0,
+            6.5
+          ],
+          "b": [
+            0,
+            8.7
+          ],
+          "n": [
+            1,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B05",
+      "type": "droit",
+      "pages": [
+        104,
+        107
+      ],
+      "branches": [
+        {
+          "a": [
+            11.45,
+            0.4
+          ],
+          "b": [
+            11.45,
+            4.9
+          ],
+          "n": [
+            -1,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B06",
+      "type": "L",
+      "pages": [
+        104,
+        107
+      ],
+      "branches": [
+        {
+          "a": [
+            6.4,
+            9.2
+          ],
+          "b": [
+            6.4,
+            12.8
+          ],
+          "n": [
+            1,
+            0
+          ]
+        },
+        {
+          "a": [
+            6.4,
+            12.8
+          ],
+          "b": [
+            8.8,
+            12.8
+          ],
+          "n": [
+            0,
+            -1
+          ]
+        }
+      ]
+    }
+  ],
+  "buffets": [
+    {
+      "id": "C01",
+      "type": "L",
+      "depth": 0.65,
+      "pages": [
+        105,
+        107
+      ],
+      "branches": [
+        {
+          "a": [
+            18.3,
+            6.15
+          ],
+          "b": [
+            18.3,
+            11.95
+          ],
+          "n": [
+            -1,
+            0
+          ]
+        },
+        {
+          "a": [
+            17.65,
+            11.8
+          ],
+          "b": [
+            13.5,
+            11.8
+          ],
+          "n": [
+            0,
+            -1
+          ]
+        }
+      ],
+      "note": "5,80 + 4,80 : la branche sud est alignée sur M10 (+0,15 m devant M08, décroché M09) – à confirmer"
+    },
+    {
+      "id": "C02",
+      "type": "droit",
+      "depth": 0.6,
+      "pages": [
+        105,
+        107
+      ],
+      "branches": [
+        {
+          "a": [
+            14.7,
+            6.15
+          ],
+          "b": [
+            16.9,
+            6.15
+          ],
+          "n": [
+            0,
+            1
+          ]
+        }
+      ],
+      "note": "Position le long de M06 d'après p.5-6 : à confirmer"
+    }
+  ],
+  "ilot": {
+    "id": "ILOT",
+    "x": 14.9,
+    "y": 9.05,
+    "rot": 0,
+    "note": "Centré dans le caisson G6 (p.6, p.23) : à confirmer",
+    "pages": [
+      106
+    ]
+  }
+}
